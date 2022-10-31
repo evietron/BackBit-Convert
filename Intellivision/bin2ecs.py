@@ -160,3 +160,5 @@ else:
     for name in binFilesList:
         if name.lower().endswith(".bin"):
             parsebin(name)
+if getattr(sys, 'frozen', False):
+    input("Press enter to proceed...")
