@@ -1,3 +1,36 @@
+#
+# Tool to convert BIN+CFG pairs to an ECS file
+#
+# About the ECS file format:
+#
+# This format allows for Intellivision ECS-style bankswitching titles
+# to be specified in a single binary file.
+#
+# A bank is defined as a block of 2048 16-bit words. Each bank supports up to 16 pages.
+# In 16-bit address space, there are exactly 32 blocks, with the first one residing at
+# $0000-$07FF and the last one residing at $F800-$FFFF.
+#
+# ECS file format:
+#
+# [00..06] "ECSINTV" hard-coded identifier
+# [07..07] ASCII encoded version # (currently 0)
+# [08..0F] reserved for future use
+# [10..2F] block types for each of the 32 contiguous blocks
+#          ASCII encoded types:
+#          'S' = static block
+#          'P' = paged block
+#          'R' = RAM block
+# [30..6F] block details for each of the 32 contiguous blocks, 16-bit big-endian word per block
+#          'S' block: reserved for future use
+#          'P' block: each bit represents if a page is used for this bank (1=used)
+#          'R' block: 8 for 8-bit RAM, or 16 for 16-bit RAM
+# [70..  ] Static data blocks, exactly 4096 bytes each, with big-endian words
+#          Paged blocks for page 0
+#          Paged blocks for page 1
+#          ...
+#          Paged blocks for page 15
+#          Note that only the used blocks are stored
+
 import glob
 import os
 import sys
@@ -16,7 +49,7 @@ BYTESPERWORD = 2
 def convert(binfile, cfginfo, ecsfile):
     pagedata = {}
     blocktype = bytearray(MAXBANK)
-    blockpages = bytearray(MAXBANK*2) # word array
+    blockdetails = bytearray(MAXBANK*2) # word array
     for key in sorted(cfginfo):
         info = cfginfo[key]
         loc = info["loc"]
@@ -29,6 +62,7 @@ def convert(binfile, cfginfo, ecsfile):
         usepage = -1
         if info.get("ram", -1) != -1:
             usetype = ord('R') # ram page
+            blockdetails[block * 2 + 1] = info["ram"]
         else:
             bytes = info["words"] * BYTESPERWORD
             binfile.seek(info["offset"]*BYTESPERWORD)
@@ -42,11 +76,11 @@ def convert(binfile, cfginfo, ecsfile):
         for block in range(startblock, endblock + 1):
             blocktype[block] = usetype
             if usepage != -1:
-                blockpages[block * 2 + (1 if usepage >= 8 else 0)] |= 1 << (usepage & 0x7)
+                blockdetails[block * 2 + (1 if usepage < 8 else 0)] |= 1 << (usepage & 0x7)
 
     ecsfile.write(header)
     ecsfile.write(blocktype)
-    ecsfile.write(blockpages)
+    ecsfile.write(blockdetails)
 
     for block in range(0, MAXBANK):
         if (blocktype[block] == ord('S')):
@@ -55,7 +89,7 @@ def convert(binfile, cfginfo, ecsfile):
     for page in range(0, MAXPAGE):
         for block in range(0, MAXBANK):
             if (blocktype[block] == ord('P')):
-                if blockpages[block * 2 + (1 if page >= 8 else 0)] >> (page & 7):
+                if blockdetails[block * 2 + (1 if page < 8 else 0)] >> (page & 7):
                     ecsfile.write(pagedata[page][block * BLOCKSIZE*BYTESPERWORD:(block+1) * BLOCKSIZE*BYTESPERWORD])
 
     ecsfile.close()
