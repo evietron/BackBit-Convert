@@ -1,4 +1,3 @@
-from cgi import parse_header
 import glob
 import os
 import sys
