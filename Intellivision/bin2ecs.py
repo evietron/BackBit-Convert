@@ -10,6 +10,10 @@
 # In 16-bit address space, there are exactly 32 blocks, with the first one residing at
 # $0000-$07FF and the last one residing at $F800-$FFFF.
 #
+# Since ECS banking operates on 4K address chunks, paged blocks will typically appear
+# here in pairs. The 2K address chunks are specified to allow static and RAM blocks to
+# be sized that way.
+#
 # ECS file format:
 #
 # [00..06] "ECSINTV" hard-coded identifier
@@ -24,8 +28,8 @@
 #          'S' block: reserved for future use
 #          'P' block: each bit represents if a page is used for this bank (1=used)
 #          'R' block: 8 for 8-bit RAM, or 16 for 16-bit RAM
-# [70..  ] Static data blocks, exactly 4096 bytes each, with big-endian words
-#          Paged blocks for page 0
+# [70..  ] Static data blocks, exactly 4096 bytes each, ordered by address, with big-endian words
+#          Paged blocks for page 0, ordered by address
 #          Paged blocks for page 1
 #          ...
 #          Paged blocks for page 15
