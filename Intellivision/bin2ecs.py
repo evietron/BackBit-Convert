@@ -64,23 +64,25 @@ def convert(binfile, cfginfo, ecsfile):
         
         usetype = ord('S') # static page
         usepage = -1
+        useparam = 0
         if info.get("ram", -1) != -1:
             usetype = ord('R') # ram page
-            blockdetails[block * 2 + 1] = info["ram"]
+            useparam = info["ram"]
         else:
             bytes = info["words"] * BYTESPERWORD
             binfile.seek(info["offset"]*BYTESPERWORD)
             if info.get("page", -1) != -1:
                 usetype = ord('P') # bankswitched page
                 usepage = info["page"]
+                useparam = 1 << usepage
             if pagedata.get(usepage, -1) == -1:
                 pagedata[usepage] = bytearray(MAXADDR*BYTESPERWORD)
             pagedata[usepage][loc*BYTESPERWORD:loc*BYTESPERWORD+bytes] = binfile.read(bytes)
 
         for block in range(startblock, endblock + 1):
             blocktype[block] = usetype
-            if usepage != -1:
-                blockdetails[block * 2 + (1 if usepage < 8 else 0)] |= 1 << (usepage & 0x7)
+            blockdetails[block * 2 + 0] |= useparam >> 8
+            blockdetails[block * 2 + 1] |= useparam & 0xff
 
     ecsfile.write(header)
     ecsfile.write(blocktype)
