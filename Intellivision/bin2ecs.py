@@ -167,6 +167,6 @@ else:
         if name.lower().endswith(".bin"):
             parsebin(name)
         else:
-            print('filespec', name, 'does not end with .bin and will not be processed')
+            print('file', name, 'does not end with .bin and will not be processed')
 if getattr(sys, 'frozen', False):
     input("Press enter to proceed...")
