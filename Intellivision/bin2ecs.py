@@ -1,3 +1,4 @@
+#! /usr/bin/env python3
 #
 # Tool to convert BIN+CFG pairs to an ECS file
 #
@@ -159,8 +160,13 @@ if (len(sys.argv) <= 1):
     print("Usage: BIN2ECS <filespec>")
 else:
     binFilesList = glob.glob(sys.argv[1])
+    if len(binFilesList) == 0:
+        print('filespec', sys.argv[1], 'does not match any files')
+        sys.exit(1)
     for name in binFilesList:
         if name.lower().endswith(".bin"):
             parsebin(name)
+        else:
+            print('filespec', name, 'does not end with .bin and will not be processed')
 if getattr(sys, 'frozen', False):
     input("Press enter to proceed...")
