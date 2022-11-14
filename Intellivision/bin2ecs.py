@@ -514,7 +514,16 @@ mappers = {
             {'offset': 0x3000, 'words': 0x1000, 'loc': 0xf000, 'key': 'f000'}
     },
     9: {
-        # defined in spreadsheet but does not actually exist?
+        '5000':
+            {'offset': 0x0000, 'words': 0x2000, 'loc': 0x5000, 'key': '5000'},
+        '9000':
+            {'offset': 0x2000, 'words': 0x2000, 'loc': 0x9000, 'key': '9000'},
+        'd000':
+            {'offset': 0x4000, 'words': 0x1000, 'loc': 0xd000, 'key': 'd000'},
+        'f000':
+            {'offset': 0x5000, 'words': 0x1000, 'loc': 0xf000, 'key': 'f000'},
+        '8800':
+            {'loc': 0x8800, 'words': 0x0800, 'ram': 8, 'key': '8800'}
     }
 }
 
