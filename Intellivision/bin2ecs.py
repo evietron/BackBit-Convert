@@ -40,10 +40,12 @@ import os
 import sys
 import hashlib
 from pathlib import Path
+import argparse
 
 header = bytearray(0x10)
 header[0:7] = 0x45, 0x43, 0x53, 0x49, 0x4E, 0x54, 0x56 # ECSINTV
 header[7] = 0x30 # version 0
+header[8] = 0x00        # default to ECS-style banking
 
 cart_data = [
         { 'hash': '8f311c3a49e8a660b8ed2cfae369e27915fe841b8d067784e96f6605552daf4a6a556978781f26c981b13791b726288d5139a3312b517153bbc1b869fa302df1',
@@ -620,15 +622,8 @@ def parsecfg(cfgname):
                 data = parsemem(txt.split())
                 if data:
                     items[data["key"]] = data
-    print(items)
+    print(sys.argv[0] + ': using custom mapper', items)
     return items
-
-def parsebin(binname):
-    cfgname = str(Path(binname).with_suffix('.cfg'))
-    ecsname = str(Path(binname).with_suffix('.ecs'))
-    cfginfo = parsecfg(cfgname)
-    print(sys.argv[0] + ': converting', binname, "->", ecsname)
-    convert(open(binname, 'rb'), cfginfo, open(ecsname, 'wb'))
 
 def sha512hash(filename):
     buffer_size = 0x10000
@@ -643,30 +638,45 @@ def sha512hash(filename):
     return sha512.hexdigest()
 
 def main():
-    args = sys.argv[1:]
-    if (len(args) < 1):
-        print('Usage:', sys.argv[0], '<filespec>')
-        sys.exit(1)
-    for name in args:
+    parser = argparse.ArgumentParser(description='BackBit utility to convert Intellivision .bin files to .ecs')
+    parser.add_argument('-d', '--directory', nargs=1, type=str, dest='dir', help='Desired output directory (default is same directory as .bin)', default='')
+    parser.add_argument('-c', '--cc3', action='store_true', dest='cc3', help='Use CC3 banking rather than ECS', default=False)
+    parser.add_argument('-f', '--force', action='store_true', dest='force', help='Force overwriting existing files', default=False)
+    parser.add_argument('binfiles', nargs='+', type=str, help='.bin files to convert')
+    args = parser.parse_args()
+
+    if args.cc3 is True:
+        header[8] = 0x00
+
+    for name in args.binfiles:
         if name.lower().endswith(".bin"):
             cfgname = str(Path(name).with_suffix('.cfg'))
             if (os.path.exists(cfgname)):
                 print(sys.argv[0] + ':', cfgname, 'exists, overriding LUT')
-                parsebin(name)
+                cfgname = str(Path(name).with_suffix('.cfg'))
+                cfginfo = parsecfg(cfgname)
             else:
                 hash = sha512hash(name)
                 for cartridge in cart_data:
-                    if hash == cartridge['hash']:
+                    if hash.lower() == cartridge['hash'].lower():
                         print(sys.argv[0] + ': matched', cartridge['name'])
-                        mapper = mappers[cartridge['mapper']]
-                        ecsname = Path(name).with_suffix('.ecs')
-                        convert(open(name, 'rb'), mapper, open(ecsname, 'wb'))
-                        print(sys.argv[0] + ': converted to', ecsname)
+                        cfginfo = mappers[cartridge['mapper']]
                         break
                 else:
                     print(sys.argv[0] + ': unknown hash and no cfg, aborting')
+                    continue
+            ecsname = Path(name).with_suffix('.ecs')
+            if len(args.dir) > 0:
+                ecsname = os.path.join(args.dir[0], os.path.basename(ecsname))
+            if not os.path.exists(ecsname) or args.force is True:
+                convert(open(name, 'rb'), cfginfo, open(ecsname, 'wb'))
+            else:
+                print(sys.argv[0] + ':', ecsname, 'exists, not overwriting')
+                continue
+            print(sys.argv[0] + ': converted to', ecsname)
         else:
-            print('filespec', name, 'does not end with .bin and will not be processed')
+            print(sys.argv[0] + ':', name, 'does not end with .bin and will not be processed')
+
     if getattr(sys, 'frozen', False):
         input("Press enter to proceed...")
 
