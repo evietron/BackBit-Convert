@@ -664,6 +664,7 @@ def main():
                         break
                 else:
                     print(sys.argv[0] + ': unknown hash and no cfg, aborting')
+                    continue
             ecsname = Path(name).with_suffix('.ecs')
             if len(args.dir) > 0:
                 ecsname = os.path.join(args.dir[0], os.path.basename(ecsname))
