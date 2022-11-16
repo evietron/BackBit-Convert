@@ -658,7 +658,7 @@ def main():
             else:
                 hash = sha512hash(name)
                 for cartridge in cart_data:
-                    if hash == cartridge['hash']:
+                    if hash.lower() == cartridge['hash'].lower():
                         print(sys.argv[0] + ': matched', cartridge['name'])
                         cfginfo = mappers[cartridge['mapper']]
                         break
