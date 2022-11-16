@@ -674,7 +674,7 @@ def main():
                 continue
             print(sys.argv[0] + ': converted to', ecsname)
         else:
-            print(sys.argv[0] + ': filespec', name, 'does not end with .bin and will not be processed')
+            print(sys.argv[0] + ':', name, 'does not end with .bin and will not be processed')
 
     if getattr(sys, 'frozen', False):
         input("Press enter to proceed...")
