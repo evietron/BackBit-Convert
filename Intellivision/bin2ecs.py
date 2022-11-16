@@ -19,7 +19,7 @@
 #
 # [00..06] "ECSINTV" hard-coded identifier
 # [07..07] ASCII encoded version # (currently 0)
-# [08..0F] reserved for future use
+# [08..0F] reserved for future use (must be 0)
 # [10..2F] block types for each of the 32 contiguous blocks
 #          ASCII encoded types:
 #          'S' = static block
@@ -28,7 +28,7 @@
 # [30..6F] block details for each of the 32 contiguous blocks, 16-bit big-endian word per block
 #          'S' block: reserved for future use
 #          'P' block: each bit represents if a page is used for this bank (1=used)
-#          'R' block: 8 for 8-bit RAM, or 16 for 16-bit RAM
+#          'R' block: 8 for 8-bit RAM, 10 for 10-bit RAM, or 16 for 16-bit RAM
 # [70..  ] Static data blocks, exactly 4096 bytes each, ordered by address, with big-endian words
 #          Paged blocks for page 0, ordered by address
 #          Paged blocks for page 1
@@ -491,7 +491,7 @@ mappers = {
         '5000':
             {'offset': 0x0000, 'words': 0x2000, 'loc': 0x5000, 'key': '5000'},
         'd000':
-            {'loc': 0xd000, 'words': 0x0400, 'ram': 8, 'key': 'd000'}
+            {'loc': 0xd000, 'words': 0x0400, 'ram': 10, 'key': 'd000'}
     },
     5: {
         '5000':
@@ -509,11 +509,9 @@ mappers = {
     },
     8: {
         '5000':
-            {'offset': 0x0000, 'words': 0x2000, 'loc': 0x5000, 'key': '5000'},
-        'd000':
-            {'offset': 0x2000, 'words': 0x1000, 'loc': 0xd000, 'key': 'd000'},
-        'f000':
-            {'offset': 0x3000, 'words': 0x1000, 'loc': 0xf000, 'key': 'f000'}
+            {'offset': 0x0000, 'words': 0x1000, 'loc': 0x5000, 'key': '5000'},
+        '7000':
+            {'offset': 0x1000, 'words': 0x1000, 'loc': 0x7000, 'key': '7000'}
     },
     9: {
         '5000':
@@ -521,11 +519,7 @@ mappers = {
         '9000':
             {'offset': 0x2000, 'words': 0x2000, 'loc': 0x9000, 'key': '9000'},
         'd000':
-            {'offset': 0x4000, 'words': 0x1000, 'loc': 0xd000, 'key': 'd000'},
-        'f000':
-            {'offset': 0x5000, 'words': 0x1000, 'loc': 0xf000, 'key': 'f000'},
-        '8800':
-            {'loc': 0x8800, 'words': 0x0800, 'ram': 8, 'key': '8800'}
+            {'loc': 0xd000, 'words': 0x0400, 'ram': 10, 'key': 'd000'}
     }
 }
 
