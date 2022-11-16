@@ -5,21 +5,25 @@
 # About the ECS file format:
 #
 # This format allows for Intellivision ECS-style bankswitching titles
-# to be specified in a single binary file.
+# to be specified in a single binary file. Other banking styles, like
+# Intellicart/Cuttle Cart 3 are supported, as well as non-banking titles.
 #
 # A bank is defined as a block of 2048 16-bit words. Each bank supports up to 16 pages.
 # In 16-bit address space, there are exactly 32 blocks, with the first one residing at
 # $0000-$07FF and the last one residing at $F800-$FFFF.
 #
 # Since ECS banking operates on 4K address chunks, paged blocks will typically appear
-# here in pairs. The 2K address chunks are specified to allow static and RAM blocks to
-# be sized that way.
+# here in pairs when ECS style banking is used. The 2K address chunks are specified to
+# allow static and RAM blocks to be sized that way, and to support Intellicart style banking.
 #
 # ECS file format:
 #
 # [00..06] "ECSINTV" hard-coded identifier
 # [07..07] ASCII encoded version # (currently 0)
-# [08..0F] reserved for future use (must be 0)
+# [08..08] Banking style
+#          0x00 = ECS (or, no banking if no 'P' blocks exist)
+#          0x01 = Intellicart/CC3
+# [09..0F] reserved for future use (must be 0)
 # [10..2F] block types for each of the 32 contiguous blocks
 #          ASCII encoded types:
 #          'S' = static block
