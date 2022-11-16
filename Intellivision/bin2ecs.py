@@ -622,7 +622,7 @@ def parsecfg(cfgname):
                 data = parsemem(txt.split())
                 if data:
                     items[data["key"]] = data
-    print(items)
+    print(sys.argv[0] + ': using custom mapper', items)
     return items
 
 def sha512hash(filename):
