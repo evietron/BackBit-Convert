@@ -541,8 +541,8 @@ def convert(binfile, cfginfo, ecsfile):
     for key in sorted(cfginfo):
         info = cfginfo[key]
         loc = info["loc"]
-        if loc < 0 or loc % BLOCKSIZE or loc >= MAXADDR:
-            print("Error: Location must start on a 2K boundary")
+        if loc < 0 or loc >= MAXADDR:
+            print("Error: Invalid location")
         startblock = loc // BLOCKSIZE
         endblock = (loc + info["words"] - 1) // BLOCKSIZE
         
@@ -579,7 +579,7 @@ def convert(binfile, cfginfo, ecsfile):
     for page in range(0, MAXPAGE):
         for block in range(0, MAXBANK):
             if (blocktype[block] == ord('P')):
-                if blockdetails[block * 2 + (1 if page < 8 else 0)] >> (page & 7):
+                if (blockdetails[block * 2 + (1 if page < 8 else 0)] >> (page & 7)) & 1:
                     ecsfile.write(pagedata[page][block * BLOCKSIZE*BYTESPERWORD:(block+1) * BLOCKSIZE*BYTESPERWORD])
 
     ecsfile.close()
