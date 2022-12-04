@@ -23,6 +23,7 @@
 # [08..08] Banking style
 #          0x00 = ECS (or, no banking if no 'P' blocks exist)
 #          0x01 = Intellicart/CC3
+#          0x02 = JLP (similar to ECS but with default RAM & extra features)
 # [09..0F] reserved for future use (must be 0)
 # [10..2F] block types for each of the 32 contiguous blocks
 #          ASCII encoded types:
@@ -645,12 +646,15 @@ def main():
     parser = argparse.ArgumentParser(description='BackBit utility to convert Intellivision .bin files to .ecs')
     parser.add_argument('-d', '--directory', nargs=1, type=str, dest='dir', help='Desired output directory (default is same directory as .bin)', default='')
     parser.add_argument('-c', '--cc3', action='store_true', dest='cc3', help='Use CC3 banking rather than ECS', default=False)
+    parser.add_argument('-j', '--jlp', action='store_true', dest='jlp', help='Use JLP features', default=False)
     parser.add_argument('-f', '--force', action='store_true', dest='force', help='Force overwriting existing files', default=False)
     parser.add_argument('binfiles', nargs='+', type=str, help='.bin files to convert')
     args = parser.parse_args()
 
     if args.cc3 is True:
-        header[8] = 0x00
+        header[8] = 0x01
+    if args.jlp is True:
+        header[8] = 0x02
 
     for name in args.binfiles:
         if name.lower().endswith(".bin"):
