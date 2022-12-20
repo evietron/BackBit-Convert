@@ -496,7 +496,7 @@ mappers = {
         '5000':
             {'offset': 0x0000, 'words': 0x2000, 'loc': 0x5000, 'key': '5000'},
         'd000':
-            {'loc': 0xd000, 'words': 0x0400, 'ram': 10, 'key': 'd000'}
+            {'loc': 0xd000, 'words': 0x0400, 'ram': 8, 'key': 'd000'}
     },
     5: {
         '5000':
@@ -524,7 +524,7 @@ mappers = {
         '9000':
             {'offset': 0x2000, 'words': 0x2000, 'loc': 0x9000, 'key': '9000'},
         'd000':
-            {'loc': 0xd000, 'words': 0x0400, 'ram': 10, 'key': 'd000'}
+            {'loc': 0xd000, 'words': 0x0400, 'ram': 8, 'key': 'd000'}
     }
 }
 
