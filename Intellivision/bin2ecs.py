@@ -39,6 +39,7 @@
 #          Paged blocks for page 1
 #          ...
 #          Paged blocks for page 15
+#          If JLP banking, an optional 1536 bytes of preserved flash data can be stored here (all or nothing)
 #          Note that only the used blocks are stored
 
 import os
