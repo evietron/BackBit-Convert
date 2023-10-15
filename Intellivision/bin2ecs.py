@@ -562,7 +562,7 @@ def convert(binfile, cfginfo, ecsfile):
                 usepage = info["page"]
                 useparam = 1 << usepage
             if pagedata.get(usepage, -1) == -1:
-                pagedata[usepage] = bytearray(MAXADDR*BYTESPERWORD)
+                pagedata[usepage] = bytearray(b'\xff') * (MAXADDR * BYTESPERWORD)
             pagedata[usepage][loc*BYTESPERWORD:loc*BYTESPERWORD+bytes] = binfile.read(bytes)
 
         for block in range(startblock, endblock + 1):
