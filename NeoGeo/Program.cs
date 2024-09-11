@@ -52,10 +52,10 @@ namespace NeoDecode
                         break;
                 }
 
-                /*string smaName = FindCartFile(dir, "sma");
+                string smaName = FindCartFile(dir, "sma");
                 FileInfo fS = new FileInfo(smaName);
                 byte[] sma = new BinaryReader(fS.OpenRead()).ReadBytes((int)fS.Length);
-                System.Buffer.BlockCopy(sma, 0, prom, prom.Length - sma.Length, sma.Length);*/
+                System.Buffer.BlockCopy(sma, 0, prom, prom.Length - sma.Length, sma.Length);
 
                 FileStream fPROM = File.OpenWrite(dir + Path.DirectorySeparatorChar + cartNum + ".pd");
                 fPROM.Write(prom);
