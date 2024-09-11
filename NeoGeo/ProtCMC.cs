@@ -505,7 +505,7 @@ public class ProtCMC
         0x76, 0xea, 0x5c, 0x82, 0x1a, 0x4f, 0xaa, 0xca, 0xe1, 0x0b, 0x4e, 0xcb, 0x6a, 0xef, 0xd1, 0xd6,
     };
 
-    static readonly byte[,] p1 = {
+    static readonly byte[,] m1_bits = {
         { 15,14,10,7,1,2,3,8,0,12,11,13,6,9,5,4},
         { 7,1,8,11,15,9,2,3,5,13,4,14,10,0,6,12},
         { 8,6,14,3,10,7,15,1,4,0,2,5,13,11,12,9},
@@ -539,22 +539,22 @@ public class ProtCMC
             (((key >> 14) & 1) << 1) |
             (((key >> 5) & 1) << 0);
         aux =
-            (((aux >> p1[block, 15]) & 1) << 15) |
-            (((aux >> p1[block, 14]) & 1) << 14) |
-            (((aux >> p1[block, 13]) & 1) << 13) |
-            (((aux >> p1[block, 12]) & 1) << 12) |
-            (((aux >> p1[block, 11]) & 1) << 11) |
-            (((aux >> p1[block, 10]) & 1) << 10) |
-            (((aux >> p1[block, 9]) & 1) << 9) |
-            (((aux >> p1[block, 8]) & 1) << 8) |
-            (((aux >> p1[block, 7]) & 1) << 7) |
-            (((aux >> p1[block, 6]) & 1) << 6) |
-            (((aux >> p1[block, 5]) & 1) << 5) |
-            (((aux >> p1[block, 4]) & 1) << 4) |
-            (((aux >> p1[block, 3]) & 1) << 3) |
-            (((aux >> p1[block, 2]) & 1) << 2) |
-            (((aux >> p1[block, 1]) & 1) << 1) |
-            (((aux >> p1[block, 0]) & 1) << 0);
+            (((aux >> m1_bits[block, 15]) & 1) << 15) |
+            (((aux >> m1_bits[block, 14]) & 1) << 14) |
+            (((aux >> m1_bits[block, 13]) & 1) << 13) |
+            (((aux >> m1_bits[block, 12]) & 1) << 12) |
+            (((aux >> m1_bits[block, 11]) & 1) << 11) |
+            (((aux >> m1_bits[block, 10]) & 1) << 10) |
+            (((aux >> m1_bits[block, 9]) & 1) << 9) |
+            (((aux >> m1_bits[block, 8]) & 1) << 8) |
+            (((aux >> m1_bits[block, 7]) & 1) << 7) |
+            (((aux >> m1_bits[block, 6]) & 1) << 6) |
+            (((aux >> m1_bits[block, 5]) & 1) << 5) |
+            (((aux >> m1_bits[block, 4]) & 1) << 4) |
+            (((aux >> m1_bits[block, 3]) & 1) << 3) |
+            (((aux >> m1_bits[block, 2]) & 1) << 2) |
+            (((aux >> m1_bits[block, 1]) & 1) << 1) |
+            (((aux >> m1_bits[block, 0]) & 1) << 0);
         aux ^= m1_address_0_7_xor[(aux >> 8) & 0xff];
         aux ^= m1_address_8_15_xor[aux & 0xff] << 8;
         aux =
@@ -592,5 +592,32 @@ public class ProtCMC
             buf[i] = rom[M1AddressScramble(i, key)];
         }
         Buffer.BlockCopy(buf, 0, rom, 0, rom.Length);
+    }
+
+    public static void P1Decrypt(byte[] rom, byte[] map)
+    {
+        for (int i = 0; i < rom.Length / 2; i++)
+        {
+            byte hi = (byte)(
+                (((rom[i * 2 + (map[0]  >> 3)] >> (map[0]  & 7)) & 1) << 7) |
+                (((rom[i * 2 + (map[1]  >> 3)] >> (map[1]  & 7)) & 1) << 6) |
+                (((rom[i * 2 + (map[2]  >> 3)] >> (map[2]  & 7)) & 1) << 5) |
+                (((rom[i * 2 + (map[3]  >> 3)] >> (map[3]  & 7)) & 1) << 4) |
+                (((rom[i * 2 + (map[4]  >> 3)] >> (map[4]  & 7)) & 1) << 3) |
+                (((rom[i * 2 + (map[5]  >> 3)] >> (map[5]  & 7)) & 1) << 2) |
+                (((rom[i * 2 + (map[6]  >> 3)] >> (map[6]  & 7)) & 1) << 1) |
+                (((rom[i * 2 + (map[7]  >> 3)] >> (map[7]  & 7)) & 1) << 0));
+            byte lo = (byte)(
+                (((rom[i * 2 + (map[8]  >> 3)] >> (map[8]  & 7)) & 1) << 7) |
+                (((rom[i * 2 + (map[9]  >> 3)] >> (map[9]  & 7)) & 1) << 6) |
+                (((rom[i * 2 + (map[10] >> 3)] >> (map[10] & 7)) & 1) << 5) |
+                (((rom[i * 2 + (map[11] >> 3)] >> (map[11] & 7)) & 1) << 4) |
+                (((rom[i * 2 + (map[12] >> 3)] >> (map[12] & 7)) & 1) << 3) |
+                (((rom[i * 2 + (map[13] >> 3)] >> (map[13] & 7)) & 1) << 2) |
+                (((rom[i * 2 + (map[14] >> 3)] >> (map[14] & 7)) & 1) << 1) |
+                (((rom[i * 2 + (map[15] >> 3)] >> (map[15] & 7)) & 1) << 0));
+            rom[i * 2 + 1] = hi;
+            rom[i * 2 + 0] = lo;
+        }
     }
 }

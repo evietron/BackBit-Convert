@@ -14,16 +14,62 @@ namespace NeoDecode
 
         static void ParseCart(string dir, int cartNum, CartType cartType, int extraXor, string name)
         {
-            byte[] croml = new byte[0];
-            byte[] cromh = new byte[0];
             Console.WriteLine("Scanning: " + dir);
             Console.WriteLine("Found: " + name);
 
+            if (new[] { 251, 253, 256, 257 }.Contains(cartNum))
+            {
+                Console.WriteLine("Decoding PROM...");
+
+                byte[] prom = new byte[0];
+                for (int i = 1; i <= 4; i++)
+                {
+                    string pName = FindCartFile(dir, "p" + i);
+                    if (File.Exists(pName))
+                    {
+                        FileInfo f = new FileInfo(pName);
+                        byte[] prom2 = new BinaryReader(f.OpenRead()).ReadBytes((int)f.Length);
+                        byte[] promn = new byte[prom.Length + prom2.Length];
+                        System.Buffer.BlockCopy(prom,  0, promn, 0, prom.Length);
+                        System.Buffer.BlockCopy(prom2, 0, promn, prom.Length, prom2.Length);
+                        prom = promn;
+                    }
+                }
+
+                switch (cartNum)
+                {
+                    case 251: // kof99
+                        ProtCMC.P1Decrypt(prom, new byte[] { 13, 7, 3, 0, 9, 4, 5, 6, 1, 12, 8, 14, 10, 11, 2, 15 });
+                        break;
+                    case 253: // garou
+                        ProtCMC.P1Decrypt(prom, new byte[] { 13, 12, 14, 10, 8, 2, 3, 1, 5, 9, 11, 4, 15, 0, 6, 7 });
+                        break;
+                    case 256: // mslug3
+                        ProtCMC.P1Decrypt(prom, new byte[] { 4, 11, 14, 3, 1, 13, 0, 7, 2, 8, 12, 15, 10, 9, 5, 6 });
+                        break;
+                    case 257: // kof2000
+                        ProtCMC.P1Decrypt(prom, new byte[] { 12, 8, 11, 3, 15, 14, 7, 0, 10, 13, 6, 5, 9, 2, 1, 4 });
+                        break;
+                }
+
+                /*string smaName = FindCartFile(dir, "sma");
+                FileInfo fS = new FileInfo(smaName);
+                byte[] sma = new BinaryReader(fS.OpenRead()).ReadBytes((int)fS.Length);
+                System.Buffer.BlockCopy(sma, 0, prom, prom.Length - sma.Length, sma.Length);*/
+
+                FileStream fPROM = File.OpenWrite(dir + Path.DirectorySeparatorChar + cartNum + ".pd");
+                fPROM.Write(prom);
+                fPROM.Close();
+            }
+
+            Console.WriteLine("Decoding CROM...");
+            byte[] croml = new byte[0];
+            byte[] cromh = new byte[0];
             for (int i = 1; i <= 8; i++)
             {
                 string cName = FindCartFile(dir, "c" + i);
-                if (File.Exists(cName)) 
-                { 
+                if (File.Exists(cName))
+                {
                     FileInfo f = new FileInfo(cName);
                     byte[] crom1 = ((i & 1) == 1) ? croml : cromh;
                     byte[] crom2 = new BinaryReader(f.OpenRead()).ReadBytes((int)f.Length);
@@ -33,15 +79,13 @@ namespace NeoDecode
                     if ((i & 1) == 1)
                     {
                         croml = cromn;
-                    } 
+                    }
                     else
                     {
                         cromh = cromn;
                     }
                 }
             }
-
-            Console.WriteLine("Decoding CROM...");
             byte[] cromc = new byte[croml.Length * 2];
             for (int i = 0; i < croml.Length / 2; i++)
             {
