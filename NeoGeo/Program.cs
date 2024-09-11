@@ -58,10 +58,10 @@ namespace NeoDecode
                 cromh[i * 2 + 0] = cromc[i * 4 + 2];
                 cromh[i * 2 + 1] = cromc[i * 4 + 3];
             }
-            FileStream fCROML = File.OpenWrite(dir + Path.DirectorySeparatorChar + cartNum + ".c1d");
+            FileStream fCROML = File.OpenWrite(dir + Path.DirectorySeparatorChar + cartNum + ".cl");
             fCROML.Write(croml);
             fCROML.Close();
-            FileStream fCROMH = File.OpenWrite(dir + Path.DirectorySeparatorChar + cartNum + ".c2d");
+            FileStream fCROMH = File.OpenWrite(dir + Path.DirectorySeparatorChar + cartNum + ".ch");
             fCROMH.Write(cromh);
             fCROMH.Close();
 
