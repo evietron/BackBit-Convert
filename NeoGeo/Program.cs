@@ -46,16 +46,16 @@ namespace NeoDecode
             for (int i = 0; i < croml.Length / 2; i++)
             {
                 cromc[i * 4 + 0] = croml[i * 2 + 0];
-                cromc[i * 4 + 1] = croml[i * 2 + 1];
-                cromc[i * 4 + 2] = cromh[i * 2 + 0];
+                cromc[i * 4 + 1] = cromh[i * 2 + 0];
+                cromc[i * 4 + 2] = croml[i * 2 + 1];
                 cromc[i * 4 + 3] = cromh[i * 2 + 1];
             }
             ProtCMC.GfxDecrypt(cromc, extraXor, cartType == CartType.CMC_50);
             for (int i = 0; i < croml.Length / 2; i++)
             {
                 croml[i * 2 + 0] = cromc[i * 4 + 0];
-                croml[i * 2 + 1] = cromc[i * 4 + 1];
-                cromh[i * 2 + 0] = cromc[i * 4 + 2];
+                cromh[i * 2 + 0] = cromc[i * 4 + 1];
+                croml[i * 2 + 1] = cromc[i * 4 + 2];
                 cromh[i * 2 + 1] = cromc[i * 4 + 3];
             }
             FileStream fCROML = File.OpenWrite(dir + Path.DirectorySeparatorChar + cartNum + ".cl");
@@ -173,7 +173,7 @@ namespace NeoDecode
                     ScanCart(dir);
                 }
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 Console.WriteLine("Error scanning " + dir);
             }
