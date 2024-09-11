@@ -162,13 +162,20 @@ namespace NeoDecode
 
         static void ScanDir(string dir)
         {
-            foreach (string s in Directory.GetDirectories(dir)) 
+            try
             {
-                ScanDir(s);
+                foreach (string s in Directory.GetDirectories(dir))
+                {
+                    ScanDir(s);
+                }
+                if (FindCartFile(dir, "p1").Length > 0)
+                {
+                    ScanCart(dir);
+                }
             }
-            if (FindCartFile(dir, "p1").Length > 0) 
+            catch (Exception e)
             {
-                ScanCart(dir);
+                Console.WriteLine("Error scanning " + dir);
             }
         }
 
