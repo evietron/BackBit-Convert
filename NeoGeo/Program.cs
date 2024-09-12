@@ -150,7 +150,7 @@ namespace NeoDecode
                 fMROM.Close();
             }
 
-            if (new[] { 263, 264, 265, 266, 267, 268, 270, 271, 272 }.Contains(cartNum))
+            if (new[] { 263, 264, 265, 266, 267, 268, 269, 270, 271, 272 }.Contains(cartNum))
             {
                 Console.WriteLine("Decoding VROM...");
                 byte[] vrom = new byte[0];
@@ -204,11 +204,14 @@ namespace NeoDecode
                     case 268: // mslug5
                         ProtCMC.VoiceDecrypt(vrom, 2);
                         break;
+                    case 269: // svc
+                        ProtCMC.VoiceDecrypt(vrom, 3);
+                        break;
                     case 270: // samsho5
                         ProtCMC.VoiceDecrypt(vrom, 4);
                         break;
                     case 271: // kof2003
-                        ProtCMC.VoiceDecrypt(vrom, 3);
+                        ProtCMC.VoiceDecrypt(vrom, 5);
                         break;
                     case 272: // samsh5sp
                         ProtCMC.VoiceDecrypt(vrom, 6);
