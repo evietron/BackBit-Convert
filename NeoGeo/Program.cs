@@ -17,7 +17,7 @@ namespace NeoDecode
             Console.WriteLine("Scanning: " + dir);
             Console.WriteLine("Found: " + name);
 
-            if (new[] { 251, 253, 256, 257 }.Contains(cartNum))
+            if (new[] { 251, 253, 256, 257, 268, 269, 271 }.Contains(cartNum))
             {
                 Console.WriteLine("Decoding PROM...");
 
@@ -30,8 +30,8 @@ namespace NeoDecode
                         FileInfo f = new FileInfo(pName);
                         byte[] prom2 = new BinaryReader(f.OpenRead()).ReadBytes((int)f.Length);
                         byte[] promn = new byte[prom.Length + prom2.Length];
-                        System.Buffer.BlockCopy(prom,  0, promn, 0, prom.Length);
-                        System.Buffer.BlockCopy(prom2, 0, promn, prom.Length, prom2.Length);
+                        Buffer.BlockCopy(prom,  0, promn, 0, prom.Length);
+                        Buffer.BlockCopy(prom2, 0, promn, prom.Length, prom2.Length);
                         prom = promn;
                     }
                 }
@@ -50,12 +50,23 @@ namespace NeoDecode
                     case 257: // kof2000
                         ProtCMC.P1Decrypt(prom, new byte[] { 12, 8, 11, 3, 15, 14, 7, 0, 10, 13, 6, 5, 9, 2, 1, 4 });
                         break;
+                    case 268: // mslug5
+                        ProtCMC.MSlug5Decrypt(prom);
+                        break;
+                    case 269: // svc
+                        ProtCMC.SVCDecrypt(prom);
+                        break;
+                    case 271: // kof2003
+                        ProtCMC.KOF2003Decrypt(prom);
+                        break;
                 }
 
-                string smaName = FindCartFile(dir, "sma");
-                FileInfo fS = new FileInfo(smaName);
-                byte[] sma = new BinaryReader(fS.OpenRead()).ReadBytes((int)fS.Length);
-                System.Buffer.BlockCopy(sma, 0, prom, prom.Length - sma.Length, sma.Length);
+                if (new[] { 251, 253, 256, 257 }.Contains(cartNum)) {
+                    string smaName = FindCartFile(dir, "sma");
+                    FileInfo fS = new FileInfo(smaName);
+                    byte[] sma = new BinaryReader(fS.OpenRead()).ReadBytes((int)fS.Length);
+                    Buffer.BlockCopy(sma, 0, prom, prom.Length - sma.Length, sma.Length);
+                }
 
                 FileStream fPROM = File.OpenWrite(dir + Path.DirectorySeparatorChar + cartNum + ".pd");
                 fPROM.Write(prom);
@@ -74,8 +85,8 @@ namespace NeoDecode
                     byte[] crom1 = ((i & 1) == 1) ? croml : cromh;
                     byte[] crom2 = new BinaryReader(f.OpenRead()).ReadBytes((int)f.Length);
                     byte[] cromn = new byte[crom1.Length + crom2.Length];
-                    System.Buffer.BlockCopy(crom1, 0, cromn, 0, crom1.Length);
-                    System.Buffer.BlockCopy(crom2, 0, cromn, crom1.Length, crom2.Length);
+                    Buffer.BlockCopy(crom1, 0, cromn, 0, crom1.Length);
+                    Buffer.BlockCopy(crom2, 0, cromn, crom1.Length, crom2.Length);
                     if ((i & 1) == 1)
                     {
                         croml = cromn;
@@ -127,6 +138,67 @@ namespace NeoDecode
                 FileStream fMROM = File.OpenWrite(dir + Path.DirectorySeparatorChar + cartNum + ".md");
                 fMROM.Write(mrom);
                 fMROM.Close();
+            }
+
+            if (new[] { 263, 264, 265, 267, 268, 271 }.Contains(cartNum))
+            {
+                Console.WriteLine("Decoding VROM...");
+                byte[] vrom = new byte[0];
+                byte[] swapBytes = new byte[8];
+                for (int i = 1; i <= 4; i++)
+                {
+                    string vName = FindCartFile(dir, "v" + i);
+                    if (File.Exists(vName))
+                    {
+                        FileInfo f = new FileInfo(vName);
+                        byte[] vrom2 = new BinaryReader(f.OpenRead()).ReadBytes((int)f.Length);
+                        byte[] vromn = new byte[vrom.Length + vrom2.Length];
+                        Buffer.BlockCopy(vrom, 0, vromn, 0, vrom.Length);
+                        Buffer.BlockCopy(vrom2, 0, vromn, vrom.Length, vrom2.Length);
+                        vrom = vromn;
+                    }
+                }
+
+                switch (cartNum)
+                {
+                    case 263: // mslug4
+                        for (int i = 0; i < vrom.Length / 8; i++)
+                        {
+                            Buffer.BlockCopy(vrom, i * 8, swapBytes, 0, 4);
+                            Buffer.BlockCopy(vrom, i * 8 + 4, vrom, i * 8, 4);
+                            Buffer.BlockCopy(swapBytes, 0, vrom, i * 8 + 4, 4);
+                        }
+                        break;
+                    case 264: // rotd
+                        for (int i = 0; i < vrom.Length / 16; i++)
+                        {
+                            Buffer.BlockCopy(vrom, i * 16, swapBytes, 0, 8);
+                            Buffer.BlockCopy(vrom, i * 16 + 8, vrom, i * 16, 8);
+                            Buffer.BlockCopy(swapBytes, 0, vrom, i * 16 + 8, 8);
+                        }
+                        break;
+                    case 267: // pnyaa
+                        for (int i = 0; i < vrom.Length / 4; i++)
+                        {
+                            Buffer.BlockCopy(vrom, i * 4, swapBytes, 0, 2);
+                            Buffer.BlockCopy(vrom, i * 4 + 2, vrom, i * 4, 2);
+                            Buffer.BlockCopy(swapBytes, 0, vrom, i * 4 + 2, 2);
+                        }
+                        break;
+                    case 265: // kof2002
+                        ProtCMC.VoiceDecrypt(vrom, 0);
+                        break;
+                    case 268: // mslug5
+                        ProtCMC.VoiceDecrypt(vrom, 2);
+                        break;
+                    case 271: // kof2003
+                        ProtCMC.VoiceDecrypt(vrom, 3);
+                        break;
+                }
+
+                FileStream fVROM = File.OpenWrite(dir + Path.DirectorySeparatorChar + cartNum + ".vd");
+                fVROM.Write(vrom);
+                fVROM.Close();
             }
         }
 
@@ -217,9 +289,13 @@ namespace NeoDecode
                     ScanCart(dir);
                 }
             }
-            catch (Exception)
+            catch (Exception e)
             {
+#if DEBUG
+                Console.WriteLine("Error scanning " + dir + ": " + e.ToString());
+#else
                 Console.WriteLine("Error scanning " + dir);
+#endif
             }
         }
 
