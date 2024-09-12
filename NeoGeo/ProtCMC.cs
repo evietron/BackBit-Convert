@@ -620,6 +620,19 @@ public class ProtCMC
         }
     }
 
+    public static void SwapWords(byte[] rom, int romLength)
+    {
+        byte[] buf = new byte[romLength];
+        Buffer.BlockCopy(rom, 0, buf, 0, romLength);
+        for (int i = 0; i < romLength / 4; i++)
+        {
+            rom[i * 4 + 0] = buf[i * 2 + 0];
+            rom[i * 4 + 1] = buf[i * 2 + 1];
+            rom[i * 4 + 2] = buf[(romLength / 2) + i * 2 + 0];
+            rom[i * 4 + 3] = buf[(romLength / 2) + i * 2 + 1];
+        }
+    }
+
     static readonly byte[] mslug5_xor1 = {
         0xc2, 0x4b, 0x74, 0xfd, 0x0b, 0x34, 0xeb, 0xd7, 0x10, 0x6d, 0xf9, 0xce, 0x5d, 0xd5, 0x61, 0x29,
         0xf5, 0xbe, 0x0d, 0x82, 0x72, 0x45, 0x0f, 0x24, 0xb3, 0x34, 0x1b, 0x99, 0xea, 0x09, 0xf3, 0x03 };
@@ -629,28 +642,27 @@ public class ProtCMC
 
     public static void MSlug5Decrypt(byte[] rom)
     {
-        const byte xorValue = 0; // little endian p1 data?
-
         byte[] buf = new byte[rom.Length];
+        SwapWords(rom, rom.Length);
 
         for (int i = 0; i < 0x100000; i++)
         {
-            rom[i] ^= mslug5_xor1[(i ^ xorValue) % 0x20];
+            rom[i] ^= mslug5_xor1[i % 0x20];
         }
 
         for (int i = 0x100000; i < 0x800000; i++) {
-            rom[i] ^= mslug5_xor2[(i ^ xorValue) % 0x20];
+            rom[i] ^= mslug5_xor2[i % 0x20];
         }
 
         for (int i = 0x100000; i < 0x800000; i += 4)
         {
-            ushort rom16 = (ushort)(rom[(i + 1) ^ xorValue] | rom[(i + 2) ^ xorValue] << 8);
+            ushort rom16 = (ushort)(rom[i + 1] | (rom[i + 2] << 8));
             rom16 = (ushort)(
                 (rom16 & 0xf00f) |
                 ((rom16 & 0x0aa0) >> 1) |
                 ((rom16 & 0x0550) << 1));
-            rom[(i + 1) ^ xorValue] = (byte)(rom16);
-            rom[(i + 2) ^ xorValue] = (byte)(rom16 >> 8);
+            rom[i + 1] = (byte)(rom16);
+            rom[i + 2] = (byte)(rom16 >> 8);
         }
 
         Buffer.BlockCopy(rom, 0, buf, 0, rom.Length);
@@ -684,29 +696,28 @@ public class ProtCMC
 
     public static void SVCDecrypt(byte[] rom)
     {
-        const byte xorValue = 0; // little endian p1 data?
-
         byte[] buf = new byte[rom.Length];
+        SwapWords(rom, rom.Length);
 
         for (int i = 0; i < 0x100000; i++)
         {
-            rom[i] ^= svc_xor1[(i ^ xorValue) % 0x20];
+            rom[i] ^= svc_xor1[i % 0x20];
         }
 
         for (int i = 0x100000; i < 0x800000; i++)
         {
-            rom[i] ^= svc_xor2[(i ^ xorValue) % 0x20];
+            rom[i] ^= svc_xor2[i % 0x20];
         }
 
         for (int i = 0x100000; i < 0x800000; i += 4)
         {
-            ushort rom16 = (ushort)(rom[(i + 1) ^ xorValue] | rom[(i + 2) ^ xorValue] << 8);
+            ushort rom16 = (ushort)(rom[i + 1] | (rom[i + 2] << 8));
             rom16 = (ushort)(
                 (rom16 & 0xf00f) |
                 ((rom16 & 0x0aa0) >> 1) |
                 ((rom16 & 0x0550) << 1));
-            rom[(i + 1) ^ xorValue] = (byte)(rom16);
-            rom[(i + 2) ^ xorValue] = (byte)(rom16 >> 8);
+            rom[i + 1] = (byte)(rom16);
+            rom[i + 2] = (byte)(rom16 >> 8);
         }
 
         Buffer.BlockCopy(rom, 0, buf, 0, rom.Length);
@@ -744,9 +755,8 @@ public class ProtCMC
 
     public static void KOF2003Decrypt(byte[] rom)
     {
-        const byte xorValue = 0; // little endian p1 data?
-
         byte[] buf = new byte[rom.Length];
+        SwapWords(rom, 0x800000);
 
         for (int i = 0; i < 0x100000; i++)
         {
@@ -755,25 +765,25 @@ public class ProtCMC
 
         for (int i = 0; i < 0x100000; i++)
         {
-            rom[i] ^= kof2003_xor1[(i ^ xorValue) % 0x20];
+            rom[i] ^= kof2003_xor1[i % 0x20];
         }
 
         for (int i = 0x100000; i < 0x800000; i++)
         {
-            rom[i] ^= kof2003_xor2[(i ^ xorValue) % 0x20];
+            rom[i] ^= kof2003_xor2[i % 0x20];
         }
 
         for (int i = 0x100000; i < 0x800000; i += 4)
         {
-            ushort rom16 = (ushort)(rom[(i + 1) ^ xorValue] | rom[(i + 2) ^ xorValue] << 8);
+            ushort rom16 = (ushort)(rom[i + 1] | (rom[i + 2] << 8));
             rom16 = (ushort)(
                 (rom16 & 0xf00f) |
                 ((rom16 & 0x0c00) >> 6) |
                 ((rom16 & 0x0300) >> 2) |
                 ((rom16 & 0x00c0) << 2) |
                 ((rom16 & 0x0030) << 6));
-            rom[(i + 1) ^ xorValue] = (byte)(rom16);
-            rom[(i + 2) ^ xorValue] = (byte)(rom16 >> 8);
+            rom[i + 1] = (byte)(rom16);
+            rom[i + 2] = (byte)(rom16 >> 8);
         }
 
         for (int i = 0; i < 0x0100000 / 0x10000; i++)
