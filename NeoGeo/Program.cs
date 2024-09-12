@@ -150,7 +150,7 @@ namespace NeoDecode
                 fMROM.Close();
             }
 
-            if (new[] { 263, 264, 265, 267, 268, 271 }.Contains(cartNum))
+            if (new[] { 263, 264, 265, 266, 267, 268, 270, 271, 272 }.Contains(cartNum))
             {
                 Console.WriteLine("Decoding VROM...");
                 byte[] vrom = new byte[0];
@@ -198,17 +198,42 @@ namespace NeoDecode
                     case 265: // kof2002
                         ProtCMC.VoiceDecrypt(vrom, 0);
                         break;
+                    case 266: // matrim
+                        ProtCMC.VoiceDecrypt(vrom, 1);
+                        break;
                     case 268: // mslug5
                         ProtCMC.VoiceDecrypt(vrom, 2);
+                        break;
+                    case 270: // samsho5
+                        ProtCMC.VoiceDecrypt(vrom, 4);
                         break;
                     case 271: // kof2003
                         ProtCMC.VoiceDecrypt(vrom, 3);
                         break;
+                    case 272: // samsh5sp
+                        ProtCMC.VoiceDecrypt(vrom, 6);
+                        break;
                 }
 
-                FileStream fVROM = File.OpenWrite(dir + Path.DirectorySeparatorChar + cartNum + ".vd");
-                fVROM.Write(vrom);
+                byte[] vroma = vrom;
+                byte[] vromb = new byte[0];
+                if (vrom.Length > 0x800000)
+                {
+                    vroma = new byte[0x800000];
+                    Buffer.BlockCopy(vrom, 0, vroma, 0, vroma.Length);
+                    vromb = new byte[vrom.Length - 0x800000];
+                    Buffer.BlockCopy(vrom, 0x800000, vromb, 0, vromb.Length);
+                }
+                FileStream fVROM = File.OpenWrite(dir + Path.DirectorySeparatorChar + cartNum + ".va");
+                fVROM.Write(vroma);
                 fVROM.Close();
+
+                if (vromb.Length > 0)
+                {
+                    fVROM = File.OpenWrite(dir + Path.DirectorySeparatorChar + cartNum + ".vb");
+                    fVROM.Write(vromb);
+                    fVROM.Close();
+                }
             }
         }
 
