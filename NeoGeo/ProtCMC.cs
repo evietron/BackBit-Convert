@@ -803,6 +803,16 @@ public class ProtCMC
         Buffer.BlockCopy(buf, 0x100000, rom, 0x200000, 0x700000);
     }
 
+    public static void P1Swap(byte[] rom, byte[] chunks)
+    {
+        byte[] buf = new byte[rom.Length];
+        Buffer.BlockCopy(rom, 0, buf, 0, rom.Length);
+        for (int i = 0; i < chunks.Length; i++)
+        {
+            Buffer.BlockCopy(buf, chunks[i] * 0x10000, rom, i * 0x80000, 0x80000);
+        }
+    }
+
     static readonly int[,] voice_addrs = {
 		{0x000000,0xa5000},
 		{0xffce20,0x01000},

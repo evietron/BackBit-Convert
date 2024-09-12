@@ -17,7 +17,7 @@ namespace NeoDecode
             Console.WriteLine("Scanning: " + dir);
             Console.WriteLine("Found: " + name);
 
-            if (new[] { 251, 253, 256, 257, 268, 269, 271 }.Contains(cartNum))
+            if (new[] { 251, 253, 256, 257, 265, 266, 268, 269, 270, 271, 272 }.Contains(cartNum))
             {
                 Console.WriteLine("Decoding PROM...");
 
@@ -50,14 +50,24 @@ namespace NeoDecode
                     case 257: // kof2000
                         ProtCMC.P1Decrypt(prom, new byte[] { 12, 8, 11, 3, 15, 14, 7, 0, 10, 13, 6, 5, 9, 2, 1, 4 });
                         break;
+                    case 265: // kof2002
+                    case 266: // matrim
+                        ProtCMC.P1Swap(prom, new byte[] { 0x00, 0x08, 0x20, 0x38, 0x40, 0x28, 0x10, 0x48, 0x30, 0x18 });
+                        break;
                     case 268: // mslug5
                         ProtCMC.MSlug5Decrypt(prom);
                         break;
                     case 269: // svc
                         ProtCMC.SVCDecrypt(prom);
                         break;
+                    case 270: // samsho5
+                        ProtCMC.P1Swap(prom, new byte[] { 0x00, 0x08, 0x70, 0x68, 0x50, 0x18, 0x20, 0x48, 0x30, 0x78, 0x60, 0x28, 0x10, 0x58, 0x40, 0x38 });
+                        break;
                     case 271: // kof2003
                         ProtCMC.KOF2003Decrypt(prom);
+                        break;
+                    case 272: // samsh5sp
+                        ProtCMC.P1Swap(prom, new byte[] { 0x00, 0x08, 0x50, 0x48, 0x60, 0x58, 0x70, 0x28, 0x10, 0x68, 0x40, 0x78, 0x20, 0x38, 0x30, 0x18 });
                         break;
                 }
 
