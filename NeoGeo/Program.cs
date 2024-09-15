@@ -9,7 +9,8 @@ namespace NeoDecode
         enum CartType
         {
             CMC_42,
-            CMC_50
+            CMC_50,
+            SBP
         }
 
         static void ParseCart(string dir, int cartNum, CartType cartType, int extraXor, string name)
@@ -17,7 +18,7 @@ namespace NeoDecode
             Console.WriteLine("Scanning: " + dir);
             Console.WriteLine("Found: " + name);
 
-            if (new[] { 251, 253, 256, 257, 265, 266, 268, 269, 270, 271, 272 }.Contains(cartNum))
+            if (new[] { 251, 253, 256, 257, 265, 266, 268, 269, 270, 271, 272, 999 }.Contains(cartNum))
             {
                 Console.WriteLine("Decoding PROM...");
 
@@ -69,6 +70,9 @@ namespace NeoDecode
                     case 272: // samsh5sp
                         ProtCMC.P1Swap(prom, new byte[] { 0x00, 0x08, 0x50, 0x48, 0x60, 0x58, 0x70, 0x28, 0x10, 0x68, 0x40, 0x78, 0x20, 0x38, 0x30, 0x18 });
                         break;
+                    case 999: // sbp
+                        prom = ProtCMC.SBPDecrypt(prom);
+                        break;
                 }
 
                 if (new[] { 251, 253, 256, 257 }.Contains(cartNum)) {
@@ -83,60 +87,63 @@ namespace NeoDecode
                 fPROM.Close();
             }
 
-            Console.WriteLine("Decoding CROM...");
-            byte[] croml = new byte[0];
-            byte[] cromh = new byte[0];
-            for (int i = 1; i <= 8; i++)
+            if (cartType == CartType.CMC_42 || cartType == CartType.CMC_50)
             {
-                string cName = FindCartFile(dir, "c" + i);
-                if (File.Exists(cName))
+                Console.WriteLine("Decoding CROM...");
+                byte[] croml = new byte[0];
+                byte[] cromh = new byte[0];
+                for (int i = 1; i <= 8; i++)
                 {
-                    FileInfo f = new FileInfo(cName);
-                    byte[] crom1 = ((i & 1) == 1) ? croml : cromh;
-                    byte[] crom2 = new BinaryReader(f.OpenRead()).ReadBytes((int)f.Length);
-                    byte[] cromn = new byte[crom1.Length + crom2.Length];
-                    Buffer.BlockCopy(crom1, 0, cromn, 0, crom1.Length);
-                    Buffer.BlockCopy(crom2, 0, cromn, crom1.Length, crom2.Length);
-                    if ((i & 1) == 1)
+                    string cName = FindCartFile(dir, "c" + i);
+                    if (File.Exists(cName))
                     {
-                        croml = cromn;
-                    }
-                    else
-                    {
-                        cromh = cromn;
+                        FileInfo f = new FileInfo(cName);
+                        byte[] crom1 = ((i & 1) == 1) ? croml : cromh;
+                        byte[] crom2 = new BinaryReader(f.OpenRead()).ReadBytes((int)f.Length);
+                        byte[] cromn = new byte[crom1.Length + crom2.Length];
+                        Buffer.BlockCopy(crom1, 0, cromn, 0, crom1.Length);
+                        Buffer.BlockCopy(crom2, 0, cromn, crom1.Length, crom2.Length);
+                        if ((i & 1) == 1)
+                        {
+                            croml = cromn;
+                        }
+                        else
+                        {
+                            cromh = cromn;
+                        }
                     }
                 }
-            }
-            byte[] cromc = new byte[croml.Length * 2];
-            for (int i = 0; i < croml.Length / 2; i++)
-            {
-                cromc[i * 4 + 0] = croml[i * 2 + 0];
-                cromc[i * 4 + 1] = cromh[i * 2 + 0];
-                cromc[i * 4 + 2] = croml[i * 2 + 1];
-                cromc[i * 4 + 3] = cromh[i * 2 + 1];
-            }
-            ProtCMC.GfxDecrypt(cromc, extraXor, cartType == CartType.CMC_50);
-            for (int i = 0; i < croml.Length / 2; i++)
-            {
-                croml[i * 2 + 0] = cromc[i * 4 + 0];
-                cromh[i * 2 + 0] = cromc[i * 4 + 1];
-                croml[i * 2 + 1] = cromc[i * 4 + 2];
-                cromh[i * 2 + 1] = cromc[i * 4 + 3];
-            }
-            FileStream fCROML = File.Create(dir + Path.DirectorySeparatorChar + cartNum + ".cl");
-            fCROML.Write(croml);
-            fCROML.Close();
-            FileStream fCROMH = File.Create(dir + Path.DirectorySeparatorChar + cartNum + ".ch");
-            fCROMH.Write(cromh);
-            fCROMH.Close();
+                byte[] cromc = new byte[croml.Length * 2];
+                for (int i = 0; i < croml.Length / 2; i++)
+                {
+                    cromc[i * 4 + 0] = croml[i * 2 + 0];
+                    cromc[i * 4 + 1] = cromh[i * 2 + 0];
+                    cromc[i * 4 + 2] = croml[i * 2 + 1];
+                    cromc[i * 4 + 3] = cromh[i * 2 + 1];
+                }
+                ProtCMC.GfxDecrypt(cromc, extraXor, cartType == CartType.CMC_50);
+                for (int i = 0; i < croml.Length / 2; i++)
+                {
+                    croml[i * 2 + 0] = cromc[i * 4 + 0];
+                    cromh[i * 2 + 0] = cromc[i * 4 + 1];
+                    croml[i * 2 + 1] = cromc[i * 4 + 2];
+                    cromh[i * 2 + 1] = cromc[i * 4 + 3];
+                }
+                FileStream fCROML = File.Create(dir + Path.DirectorySeparatorChar + cartNum + ".cl");
+                fCROML.Write(croml);
+                fCROML.Close();
+                FileStream fCROMH = File.Create(dir + Path.DirectorySeparatorChar + cartNum + ".ch");
+                fCROMH.Write(cromh);
+                fCROMH.Close();
 
-            bool isBankedSFix = new [] { 253, 256, 257, 263, 266, 269, 271 }.Contains(cartNum);
-            byte[] srom = new byte[(isBankedSFix ? 512 : 128) * 1024];
-            Console.WriteLine("Decoding SFIX...");
-            ProtCMC.SFixDecrypt(cromc, srom);
-            FileStream fSROM = File.Create(dir + Path.DirectorySeparatorChar + cartNum + ".sd");
-            fSROM.Write(srom);
-            fSROM.Close();
+                bool isBankedSFix = new[] { 253, 256, 257, 263, 266, 269, 271 }.Contains(cartNum);
+                byte[] srom = new byte[(isBankedSFix ? 512 : 128) * 1024];
+                Console.WriteLine("Decoding SFIX...");
+                ProtCMC.SFixDecrypt(cromc, srom);
+                FileStream fSROM = File.Create(dir + Path.DirectorySeparatorChar + cartNum + ".sd");
+                fSROM.Write(srom);
+                fSROM.Close();
+            }
 
             if (cartType == CartType.CMC_50)
             {
@@ -257,6 +264,7 @@ namespace NeoDecode
         {
             string p1Name = FindCartFile(dir, "p1");
             string p2Name = FindCartFile(dir, "p2");
+            string sbpName = FindCartFile(dir, "u13");
 
             int cartNum = 0;
             string cartNumStr = p1Name.Substring(p1Name.LastIndexOf(Path.DirectorySeparatorChar) + 1);
@@ -271,6 +279,10 @@ namespace NeoDecode
                     break;
                 }
             }
+            if (sbpName.Length > 0)
+            {
+                p1Name = FindCartFile(dir, "02a");
+            }
             if (cartNum == 0 && p1Name.Length > 0)
             {
                 // could not determine cart num from filename, so look inside
@@ -283,7 +295,21 @@ namespace NeoDecode
                 p1fs.Seek(0x108, SeekOrigin.Current);
                 int cartNumLo = p1fs.ReadByte();
                 int cartNumHi = p1fs.ReadByte();
-                cartNum = cartNumHi * 100 + (cartNumLo >> 4) * 10 + (cartNumLo & 15);
+                if (cartNumLo == 0xdc && cartNumHi == 0xfe)
+                {
+                    cartNum = 999; // super bubble pop
+                    File.Copy(FindCartFile(dir, "01b"), dir + Path.DirectorySeparatorChar + cartNum + ".m1");
+                    File.Copy(FindCartFile(dir, "02a"), dir + Path.DirectorySeparatorChar + cartNum + ".p1");
+                    File.Copy(FindCartFile(dir, "02b"), dir + Path.DirectorySeparatorChar + cartNum + ".s1");
+                    File.Copy(FindCartFile(dir, "03b"), dir + Path.DirectorySeparatorChar + cartNum + ".c1");
+                    File.Copy(FindCartFile(dir, "04b"), dir + Path.DirectorySeparatorChar + cartNum + ".c2");
+                    File.Copy(FindCartFile(dir, "12a"), dir + Path.DirectorySeparatorChar + cartNum + ".v1");
+                    File.Copy(FindCartFile(dir, "13a"), dir + Path.DirectorySeparatorChar + cartNum + ".v2");
+                }
+                else 
+                {
+                    cartNum = cartNumHi * 100 + (cartNumLo >> 4) * 10 + (cartNumLo & 15);
+                }
             }
             
             switch (cartNum)
@@ -311,6 +337,7 @@ namespace NeoDecode
                 case 270: ParseCart(dir, cartNum, CartType.CMC_50, 0x0f, "samsho5"); break;
                 case 271: ParseCart(dir, cartNum, CartType.CMC_50, 0x9d, "kof2003"); break;
                 case 272: ParseCart(dir, cartNum, CartType.CMC_50, 0x0d, "samsh5sp"); break;
+                case 999: ParseCart(dir, cartNum, CartType.SBP,    0x00, "sbp"); break;
             }
         }
 
@@ -322,7 +349,7 @@ namespace NeoDecode
                 {
                     ScanDir(s);
                 }
-                if (FindCartFile(dir, "p1").Length > 0)
+                if (FindCartFile(dir, "p1").Length > 0 || FindCartFile(dir, "u13").Length > 0)
                 {
                     ScanCart(dir);
                 }
