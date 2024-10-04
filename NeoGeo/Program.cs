@@ -15,6 +15,12 @@ namespace NeoDecode
 
         static void ParseCart(string dir, int cartNum, CartType cartType, int extraXor, string name)
         {
+            string cartNumPadded = cartNum.ToString();
+            while (cartNumPadded.Length < 3)
+            {
+                cartNumPadded = "0" + cartNumPadded;
+            }
+
             Console.WriteLine("Scanning: " + dir);
             Console.WriteLine("Found: " + name);
 
@@ -82,7 +88,7 @@ namespace NeoDecode
                     Buffer.BlockCopy(sma, 0, prom, prom.Length - sma.Length, sma.Length);
                 }
 
-                FileStream fPROM = File.Create(dir + Path.DirectorySeparatorChar + cartNum + ".pd");
+                FileStream fPROM = File.Create(dir + Path.DirectorySeparatorChar + cartNumPadded + ".pd");
                 fPROM.Write(prom);
                 fPROM.Close();
             }
@@ -129,10 +135,10 @@ namespace NeoDecode
                     croml[i * 2 + 1] = cromc[i * 4 + 2];
                     cromh[i * 2 + 1] = cromc[i * 4 + 3];
                 }
-                FileStream fCROML = File.Create(dir + Path.DirectorySeparatorChar + cartNum + ".cl");
+                FileStream fCROML = File.Create(dir + Path.DirectorySeparatorChar + cartNumPadded + ".cl");
                 fCROML.Write(croml);
                 fCROML.Close();
-                FileStream fCROMH = File.Create(dir + Path.DirectorySeparatorChar + cartNum + ".ch");
+                FileStream fCROMH = File.Create(dir + Path.DirectorySeparatorChar + cartNumPadded + ".ch");
                 fCROMH.Write(cromh);
                 fCROMH.Close();
 
@@ -140,7 +146,7 @@ namespace NeoDecode
                 byte[] srom = new byte[(isBankedSFix ? 512 : 128) * 1024];
                 Console.WriteLine("Decoding SFIX...");
                 ProtCMC.SFixDecrypt(cromc, srom);
-                FileStream fSROM = File.Create(dir + Path.DirectorySeparatorChar + cartNum + ".sd");
+                FileStream fSROM = File.Create(dir + Path.DirectorySeparatorChar + cartNumPadded + ".sd");
                 fSROM.Write(srom);
                 fSROM.Close();
             }
@@ -152,7 +158,7 @@ namespace NeoDecode
                 FileInfo f = new FileInfo(mName);
                 byte[] mrom = new BinaryReader(f.OpenRead()).ReadBytes((int)f.Length);
                 ProtCMC.M1Decrypt(mrom);
-                FileStream fMROM = File.Create(dir + Path.DirectorySeparatorChar + cartNum + ".md");
+                FileStream fMROM = File.Create(dir + Path.DirectorySeparatorChar + cartNumPadded + ".md");
                 fMROM.Write(mrom);
                 fMROM.Close();
             }
@@ -234,13 +240,13 @@ namespace NeoDecode
                     vromb = new byte[vrom.Length - 0x800000];
                     Buffer.BlockCopy(vrom, 0x800000, vromb, 0, vromb.Length);
                 }
-                FileStream fVROM = File.Create(dir + Path.DirectorySeparatorChar + cartNum + ".va");
+                FileStream fVROM = File.Create(dir + Path.DirectorySeparatorChar + cartNumPadded + ".va");
                 fVROM.Write(vroma);
                 fVROM.Close();
 
                 if (vromb.Length > 0)
                 {
-                    fVROM = File.Create(dir + Path.DirectorySeparatorChar + cartNum + ".vb");
+                    fVROM = File.Create(dir + Path.DirectorySeparatorChar + cartNumPadded + ".vb");
                     fVROM.Write(vromb);
                     fVROM.Close();
                 }
