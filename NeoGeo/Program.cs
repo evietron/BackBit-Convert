@@ -13,6 +13,8 @@ namespace NeoDecode
             SBP
         }
 
+        static readonly byte[] NEO_GEO_HEADER = { 0x45, 0x4E, 0x2D, 0x4F, 0x45, 0x47 };
+
         static void ParseCart(string dir, int cartNum, CartType cartType, int extraXor, string name)
         {
             string cartNumPadded = cartNum.ToString();
@@ -26,7 +28,7 @@ namespace NeoDecode
 
             if (new[] { 251, 253, 256, 257, 265, 266, 268, 269, 270, 271, 272, 999 }.Contains(cartNum))
             {
-                Console.WriteLine("Decoding PROM...");
+                Console.Write("Decoding PROM");
 
                 byte[] prom = new byte[0];
                 for (int i = 1; i <= 4; i++)
@@ -43,54 +45,91 @@ namespace NeoDecode
                     }
                 }
 
-                switch (cartNum)
+                if (prom.Skip(0x100).Take(6).SequenceEqual(NEO_GEO_HEADER) &&
+                    new[] { 251, 253, 256, 257 }.Contains(cartNum))
                 {
-                    case 251: // kof99
-                        ProtCMC.P1Decrypt(prom, new byte[] { 13, 7, 3, 0, 9, 4, 5, 6, 1, 12, 8, 14, 10, 11, 2, 15 });
-                        break;
-                    case 253: // garou
-                        ProtCMC.P1Decrypt(prom, new byte[] { 13, 12, 14, 10, 8, 2, 3, 1, 5, 9, 11, 4, 15, 0, 6, 7 });
-                        break;
-                    case 256: // mslug3
-                        ProtCMC.P1Decrypt(prom, new byte[] { 4, 11, 14, 3, 1, 13, 0, 7, 2, 8, 12, 15, 10, 9, 5, 6 });
-                        break;
-                    case 257: // kof2000
-                        ProtCMC.P1Decrypt(prom, new byte[] { 12, 8, 11, 3, 15, 14, 7, 0, 10, 13, 6, 5, 9, 2, 1, 4 });
-                        break;
-                    case 265: // kof2002
-                    case 266: // matrim
-                        ProtCMC.P1Swap(prom, new byte[] { 0x00, 0x08, 0x20, 0x38, 0x40, 0x28, 0x10, 0x48, 0x30, 0x18 });
-                        break;
-                    case 268: // mslug5
-                        ProtCMC.MSlug5Decrypt(prom);
-                        break;
-                    case 269: // svc
-                        ProtCMC.SVCDecrypt(prom);
-                        break;
-                    case 270: // samsho5
-                        ProtCMC.P1Swap(prom, new byte[] { 0x00, 0x08, 0x70, 0x68, 0x50, 0x18, 0x20, 0x48, 0x30, 0x78, 0x60, 0x28, 0x10, 0x58, 0x40, 0x38 });
-                        break;
-                    case 271: // kof2003
-                        prom = ProtCMC.KOF2003Decrypt(prom);
-                        break;
-                    case 272: // samsh5sp
-                        ProtCMC.P1Swap(prom, new byte[] { 0x00, 0x08, 0x50, 0x48, 0x60, 0x58, 0x70, 0x28, 0x10, 0x68, 0x40, 0x78, 0x20, 0x38, 0x30, 0x18 });
-                        break;
-                    case 999: // sbp
-                        prom = ProtCMC.SBPDecrypt(prom);
-                        break;
+                    Console.WriteLine(" (Not Encrypted)...");
                 }
+                else
+                {
+                    int smaOffset = 0;
+                    switch (cartNum)
+                    {
+                        case 251: // kof99
+                            ProtCMC.P1Decrypt(prom, new byte[] { 13, 7, 3, 0, 9, 4, 5, 6, 1, 12, 8, 14, 10, 11, 2, 15 });
+                            break;
+                        case 253: // garou
+                            if (prom[0] == 0xf5)
+                            {
+                                Console.Write(" (Alternate)");
+                                ProtCMC.P1Decrypt(prom, new byte[] { 14, 5, 1, 11, 7, 4, 10, 15, 3, 12, 8, 13, 0, 2, 9, 6 });
+                                smaOffset = 0x300000; // need an empty spot
+                            }
+                            else
+                            {
+                                ProtCMC.P1Decrypt(prom, new byte[] { 13, 12, 14, 10, 8, 2, 3, 1, 5, 9, 11, 4, 15, 0, 6, 7 });
+                            }
+                            break;
+                        case 256: // mslug3
+                            if (prom[2] == 0xfb)
+                            {
+                                Console.Write(" (Alternate)");
+                                ProtCMC.P1Decrypt(prom, new byte[] { 2, 11, 12, 14, 9, 3, 1, 4, 13, 7, 6, 8, 10, 15, 0, 5 }); // A
+                            }
+                            else
+                            {
+                                ProtCMC.P1Decrypt(prom, new byte[] { 4, 11, 14, 3, 1, 13, 0, 7, 2, 8, 12, 15, 10, 9, 5, 6 });
+                            }
+                            break;
+                        case 257: // kof2000
+                            ProtCMC.P1Decrypt(prom, new byte[] { 12, 8, 11, 3, 15, 14, 7, 0, 10, 13, 6, 5, 9, 2, 1, 4 });
+                            break;
+                        case 265: // kof2002
+                        case 266: // matrim
+                            ProtCMC.P1Swap(prom, new byte[] { 0x00, 0x08, 0x20, 0x38, 0x40, 0x28, 0x10, 0x48, 0x30, 0x18 });
+                            break;
+                        case 268: // mslug5
+                            ProtCMC.MSlug5Decrypt(prom);
+                            break;
+                        case 269: // svc
+                            ProtCMC.SVCDecrypt(prom);
+                            break;
+                        case 270: // samsho5
+                            ProtCMC.P1Swap(prom, new byte[] { 0x00, 0x08, 0x70, 0x68, 0x50, 0x18, 0x20, 0x48, 0x30, 0x78, 0x60, 0x28, 0x10, 0x58, 0x40, 0x38 });
+                            break;
+                        case 271: // kof2003
+                            if (prom[0] == 0xd2)
+                            {
+                                Console.Write(" (Alternate)");
+                                prom = ProtCMC.KOF2003HDecrypt(prom);
+                            }
+                            else
+                            {
+                                prom = ProtCMC.KOF2003Decrypt(prom);
+                            }
+                            break;
+                        case 272: // samsh5sp
+                            ProtCMC.P1Swap(prom, new byte[] { 0x00, 0x08, 0x50, 0x48, 0x60, 0x58, 0x70, 0x28, 0x10, 0x68, 0x40, 0x78, 0x20, 0x38, 0x30, 0x18 });
+                            break;
+                        case 999: // sbp
+                            prom = ProtCMC.SBPDecrypt(prom);
+                            break;
+                    }
 
-                if (new[] { 251, 253, 256, 257 }.Contains(cartNum)) {
-                    string smaName = FindCartFile(dir, "sma");
-                    FileInfo fS = new FileInfo(smaName);
-                    byte[] sma = new BinaryReader(fS.OpenRead()).ReadBytes((int)fS.Length);
-                    Buffer.BlockCopy(sma, 0, prom, prom.Length - sma.Length, sma.Length);
+                    if (new[] { 251, 253, 256, 257 }.Contains(cartNum))
+                    {
+                        string smaName = FindCartFile(dir, "sma");
+                        FileInfo fS = new FileInfo(smaName);
+                        byte[] sma = new BinaryReader(fS.OpenRead()).ReadBytes((int)fS.Length);
+                        Buffer.BlockCopy(sma, 0, prom, prom.Length - smaOffset - sma.Length, sma.Length);
+                    }
+
+                    Console.WriteLine("...");
+
+                    FileStream fPROM = File.Create(dir + Path.DirectorySeparatorChar + cartNumPadded + ".pd");
+                    fPROM.Write(prom);
+                    fPROM.Close();
                 }
-
-                FileStream fPROM = File.Create(dir + Path.DirectorySeparatorChar + cartNumPadded + ".pd");
-                fPROM.Write(prom);
-                fPROM.Close();
             }
 
             if (cartType == CartType.CMC_42 || cartType == CartType.CMC_50)
@@ -312,38 +351,45 @@ namespace NeoDecode
                     File.Copy(FindCartFile(dir, "12a"), dir + Path.DirectorySeparatorChar + cartNum + ".v1");
                     File.Copy(FindCartFile(dir, "13a"), dir + Path.DirectorySeparatorChar + cartNum + ".v2");
                 }
-                else 
+                else
                 {
                     cartNum = cartNumHi * 100 + (cartNumLo >> 4) * 10 + (cartNumLo & 15);
                 }
             }
-            
-            switch (cartNum)
+
+            try
             {
-                case 70:  ParseCart(dir, cartNum, CartType.CMC_42, 0xbd, "zupapa"); break;
-                case 251: ParseCart(dir, cartNum, CartType.CMC_42, 0x00, "kof99"); break;
-                case 252: ParseCart(dir, cartNum, CartType.CMC_42, 0x07, "ganryu"); break;
-                case 253: ParseCart(dir, cartNum, CartType.CMC_42, 0x06, "garou"); break;
-                case 254: ParseCart(dir, cartNum, CartType.CMC_42, 0x05, "s1945p"); break;
-                case 255: ParseCart(dir, cartNum, CartType.CMC_42, 0x9f, "preisle2"); break;
-                case 256: ParseCart(dir, cartNum, CartType.CMC_42, 0xad, "mslug3"); break;
-                case 259: ParseCart(dir, cartNum, CartType.CMC_42, 0xf8, "bangbead"); break;
-                case 260: ParseCart(dir, cartNum, CartType.CMC_42, 0xff, "nitd"); break;
-                case 261: ParseCart(dir, cartNum, CartType.CMC_42, 0xfe, "sengoku3"); break;
-                case 8:   ParseCart(dir, cartNum, CartType.CMC_50, 0xac, "jockeygp"); break;
-                case 257: ParseCart(dir, cartNum, CartType.CMC_50, 0x00, "kof2000"); break;
-                case 262: ParseCart(dir, cartNum, CartType.CMC_50, 0x1e, "kof2001"); break;
-                case 263: ParseCart(dir, cartNum, CartType.CMC_50, 0x31, "mslug4"); break;
-                case 264: ParseCart(dir, cartNum, CartType.CMC_50, 0x3f, "rotd"); break;
-                case 265: ParseCart(dir, cartNum, CartType.CMC_50, 0xec, "kof2002"); break;
-                case 266: ParseCart(dir, cartNum, CartType.CMC_50, 0x6a, "matrim"); break;
-                case 267: ParseCart(dir, cartNum, CartType.CMC_50, 0x2e, "pnyaa"); break;
-                case 268: ParseCart(dir, cartNum, CartType.CMC_50, 0x19, "mslug5"); break;
-                case 269: ParseCart(dir, cartNum, CartType.CMC_50, 0x57, "svc"); break;
-                case 270: ParseCart(dir, cartNum, CartType.CMC_50, 0x0f, "samsho5"); break;
-                case 271: ParseCart(dir, cartNum, CartType.CMC_50, 0x9d, "kof2003"); break;
-                case 272: ParseCart(dir, cartNum, CartType.CMC_50, 0x0d, "samsh5sp"); break;
-                case 999: ParseCart(dir, cartNum, CartType.SBP,    0x00, "sbp"); break;
+                switch (cartNum)
+                {
+                    case 70: ParseCart(dir, cartNum, CartType.CMC_42, 0xbd, "zupapa"); break;
+                    case 251: ParseCart(dir, cartNum, CartType.CMC_42, 0x00, "kof99"); break;
+                    case 252: ParseCart(dir, cartNum, CartType.CMC_42, 0x07, "ganryu"); break;
+                    case 253: ParseCart(dir, cartNum, CartType.CMC_42, 0x06, "garou"); break;
+                    case 254: ParseCart(dir, cartNum, CartType.CMC_42, 0x05, "s1945p"); break;
+                    case 255: ParseCart(dir, cartNum, CartType.CMC_42, 0x9f, "preisle2"); break;
+                    case 256: ParseCart(dir, cartNum, CartType.CMC_42, 0xad, "mslug3"); break;
+                    case 259: ParseCart(dir, cartNum, CartType.CMC_42, 0xf8, "bangbead"); break;
+                    case 260: ParseCart(dir, cartNum, CartType.CMC_42, 0xff, "nitd"); break;
+                    case 261: ParseCart(dir, cartNum, CartType.CMC_42, 0xfe, "sengoku3"); break;
+                    case 8: ParseCart(dir, cartNum, CartType.CMC_50, 0xac, "jockeygp"); break;
+                    case 257: ParseCart(dir, cartNum, CartType.CMC_50, 0x00, "kof2000"); break;
+                    case 262: ParseCart(dir, cartNum, CartType.CMC_50, 0x1e, "kof2001"); break;
+                    case 263: ParseCart(dir, cartNum, CartType.CMC_50, 0x31, "mslug4"); break;
+                    case 264: ParseCart(dir, cartNum, CartType.CMC_50, 0x3f, "rotd"); break;
+                    case 265: ParseCart(dir, cartNum, CartType.CMC_50, 0xec, "kof2002"); break;
+                    case 266: ParseCart(dir, cartNum, CartType.CMC_50, 0x6a, "matrim"); break;
+                    case 267: ParseCart(dir, cartNum, CartType.CMC_50, 0x2e, "pnyaa"); break;
+                    case 268: ParseCart(dir, cartNum, CartType.CMC_50, 0x19, "mslug5"); break;
+                    case 269: ParseCart(dir, cartNum, CartType.CMC_50, 0x57, "svc"); break;
+                    case 270: ParseCart(dir, cartNum, CartType.CMC_50, 0x0f, "samsho5"); break;
+                    case 271: ParseCart(dir, cartNum, CartType.CMC_50, 0x9d, "kof2003"); break;
+                    case 272: ParseCart(dir, cartNum, CartType.CMC_50, 0x0d, "samsh5sp"); break;
+                    case 999: ParseCart(dir, cartNum, CartType.SBP, 0x00, "sbp"); break;
+                }
+            }
+            catch (Exception)
+            {
+                Console.WriteLine("Error parsing " + dir);
             }
         }
 
@@ -360,7 +406,7 @@ namespace NeoDecode
                     ScanCart(dir);
                 }
             }
-            catch (Exception e)
+            catch (Exception)
             {
 #if DEBUG
                 Console.WriteLine("Error scanning " + dir + ": " + e.ToString());
