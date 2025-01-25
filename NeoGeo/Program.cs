@@ -1,6 +1,7 @@
 ﻿
 using System;
 using System.Linq;
+using System.Xml.Linq;
 
 namespace NeoDecode
 {
@@ -23,7 +24,6 @@ namespace NeoDecode
                 cartNumPadded = "0" + cartNumPadded;
             }
 
-            Console.WriteLine("Scanning: " + dir);
             Console.WriteLine("Found: " + name);
 
             if (new[] { 251, 253, 256, 257, 265, 266, 268, 269, 270, 271, 272, 999 }.Contains(cartNum))
@@ -33,7 +33,7 @@ namespace NeoDecode
                 byte[] prom = new byte[0];
                 for (int i = 1; i <= 4; i++)
                 {
-                    string pName = FindCartFile(dir, "p" + i);
+                    string pName = FindCartSuffix(dir, "p" + i);
                     if (File.Exists(pName))
                     {
                         FileInfo f = new FileInfo(pName);
@@ -118,7 +118,7 @@ namespace NeoDecode
 
                     if (new[] { 251, 253, 256, 257 }.Contains(cartNum))
                     {
-                        string smaName = FindCartFile(dir, "sma");
+                        string smaName = FindCartSuffix(dir, "sma");
                         FileInfo fS = new FileInfo(smaName);
                         byte[] sma = new BinaryReader(fS.OpenRead()).ReadBytes((int)fS.Length);
                         Buffer.BlockCopy(sma, 0, prom, prom.Length - smaOffset - sma.Length, sma.Length);
@@ -139,7 +139,7 @@ namespace NeoDecode
                 byte[] cromh = new byte[0];
                 for (int i = 1; i <= 8; i++)
                 {
-                    string cName = FindCartFile(dir, "c" + i);
+                    string cName = FindCartSuffix(dir, "c" + i);
                     if (File.Exists(cName))
                     {
                         FileInfo f = new FileInfo(cName);
@@ -193,7 +193,7 @@ namespace NeoDecode
             if (cartType == CartType.CMC_50)
             {
                 Console.WriteLine("Decoding M1...");
-                string mName = FindCartFile(dir, "m1");
+                string mName = FindCartSuffix(dir, "m1");
                 FileInfo f = new FileInfo(mName);
                 byte[] mrom = new BinaryReader(f.OpenRead()).ReadBytes((int)f.Length);
                 ProtCMC.M1Decrypt(mrom);
@@ -209,7 +209,7 @@ namespace NeoDecode
                 byte[] swapBytes = new byte[8];
                 for (int i = 1; i <= 4; i++)
                 {
-                    string vName = FindCartFile(dir, "v" + i);
+                    string vName = FindCartSuffix(dir, "v" + i);
                     if (File.Exists(vName))
                     {
                         FileInfo f = new FileInfo(vName);
@@ -296,8 +296,22 @@ namespace NeoDecode
         {
             foreach (string s in Directory.GetFiles(dir))
             {
-                if (s.ToUpper().IndexOf("-" + romName.ToUpper()) != -1 ||
-                    s.ToUpper().IndexOf("." + romName.ToUpper()) != -1)
+                string s2 = s.Substring(s.LastIndexOf(Path.DirectorySeparatorChar) + 1);
+                if (s2.ToUpper() == romName.ToUpper())
+                {
+                    return s;
+                }
+            }
+            return "";
+        }
+
+        static string FindCartSuffix(string dir, string romName)
+        {
+            foreach (string s in Directory.GetFiles(dir))
+            {
+                string s2 = s.Substring(s.LastIndexOf(Path.DirectorySeparatorChar) + 1);
+                if (s2.ToUpper().IndexOf("-" + romName.ToUpper()) != -1 ||
+                    s2.ToUpper().IndexOf("." + romName.ToUpper()) != -1)
                 {
                     return s;
                 }
@@ -307,9 +321,9 @@ namespace NeoDecode
 
         static void ScanCart(string dir)
         {
-            string p1Name = FindCartFile(dir, "p1");
-            string p2Name = FindCartFile(dir, "p2");
-            string sbpName = FindCartFile(dir, "u13");
+            string p1Name = FindCartSuffix(dir, "p1");
+            string p2Name = FindCartSuffix(dir, "p2");
+            string sbpName = FindCartSuffix(dir, "u13");
 
             int cartNum = 0;
             string cartNumStr = p1Name.Substring(p1Name.LastIndexOf(Path.DirectorySeparatorChar) + 1);
@@ -326,7 +340,7 @@ namespace NeoDecode
             }
             if (sbpName.Length > 0)
             {
-                p1Name = FindCartFile(dir, "02a");
+                p1Name = FindCartSuffix(dir, "02a");
             }
             if (cartNum == 0 && p1Name.Length > 0)
             {
@@ -343,13 +357,13 @@ namespace NeoDecode
                 if (cartNumLo == 0xdc && cartNumHi == 0xfe)
                 {
                     cartNum = 999; // super bubble pop
-                    File.Copy(FindCartFile(dir, "01b"), dir + Path.DirectorySeparatorChar + cartNum + ".m1");
-                    File.Copy(FindCartFile(dir, "02a"), dir + Path.DirectorySeparatorChar + cartNum + ".p1");
-                    File.Copy(FindCartFile(dir, "02b"), dir + Path.DirectorySeparatorChar + cartNum + ".s1");
-                    File.Copy(FindCartFile(dir, "03b"), dir + Path.DirectorySeparatorChar + cartNum + ".c1");
-                    File.Copy(FindCartFile(dir, "04b"), dir + Path.DirectorySeparatorChar + cartNum + ".c2");
-                    File.Copy(FindCartFile(dir, "12a"), dir + Path.DirectorySeparatorChar + cartNum + ".v1");
-                    File.Copy(FindCartFile(dir, "13a"), dir + Path.DirectorySeparatorChar + cartNum + ".v2");
+                    File.Copy(FindCartSuffix(dir, "01b"), dir + Path.DirectorySeparatorChar + cartNum + ".m1");
+                    File.Copy(FindCartSuffix(dir, "02a"), dir + Path.DirectorySeparatorChar + cartNum + ".p1");
+                    File.Copy(FindCartSuffix(dir, "02b"), dir + Path.DirectorySeparatorChar + cartNum + ".s1");
+                    File.Copy(FindCartSuffix(dir, "03b"), dir + Path.DirectorySeparatorChar + cartNum + ".c1");
+                    File.Copy(FindCartSuffix(dir, "04b"), dir + Path.DirectorySeparatorChar + cartNum + ".c2");
+                    File.Copy(FindCartSuffix(dir, "12a"), dir + Path.DirectorySeparatorChar + cartNum + ".v1");
+                    File.Copy(FindCartSuffix(dir, "13a"), dir + Path.DirectorySeparatorChar + cartNum + ".v2");
                 }
                 else
                 {
@@ -393,6 +407,48 @@ namespace NeoDecode
             }
         }
 
+        static void ParseDarkSoft(string dir)
+        {
+            Console.WriteLine("Found DarkSoft");
+            foreach (string s in Directory.GetFiles(dir))
+            {
+                switch (s.Substring(s.LastIndexOf(Path.DirectorySeparatorChar) + 1))
+                {
+                    case "crom0":
+                        Console.WriteLine("Decoding CROM...");
+                        FileInfo f = new FileInfo(s);
+                        byte[] crom = new BinaryReader(f.OpenRead()).ReadBytes((int)f.Length);
+                        byte[] croml = new byte[crom.Length / 2];
+                        byte[] cromh = new byte[crom.Length / 2];
+                        for (int i = 0; i < crom.Length / 4; i++) {
+                            croml[i * 2 + 0] = crom[i * 4 + 0];
+                            croml[i * 2 + 1] = crom[i * 4 + 1];
+                            cromh[i * 2 + 0] = crom[i * 4 + 2];
+                            cromh[i * 2 + 1] = crom[i * 4 + 3];
+                        }
+                        FileStream fCROML = File.Create(dir + Path.DirectorySeparatorChar + "crom.c1");
+                        fCROML.Write(croml);
+                        fCROML.Close();
+                        FileStream fCROMH = File.Create(dir + Path.DirectorySeparatorChar + "crom.c2");
+                        fCROMH.Write(cromh);
+                        fCROMH.Close();
+                        break;
+                    case "m1rom":
+                        File.Move(s, s + ".m1");
+                        break;
+                    case "prom":
+                        File.Move(s, s + ".p1");
+                        break;
+                    case "srom":
+                        File.Move(s, s + ".s1");
+                        break;
+                    case "vroma0":
+                        File.Move(s, s + ".v1");
+                        break;
+                }
+            }
+        }
+
         static void ScanDir(string dir)
         {
             try
@@ -401,7 +457,12 @@ namespace NeoDecode
                 {
                     ScanDir(s);
                 }
-                if (FindCartFile(dir, "p1").Length > 0 || FindCartFile(dir, "u13").Length > 0)
+                Console.WriteLine("Scanning: " + dir);
+                if (FindCartFile(dir, "crom0").Length > 0)
+                {
+                    ParseDarkSoft(dir);
+                }
+                else if (FindCartSuffix(dir, "p1").Length > 0 || FindCartSuffix(dir, "u13").Length > 0)
                 {
                     ScanCart(dir);
                 }
