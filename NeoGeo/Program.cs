@@ -9,9 +9,9 @@ namespace NeoDecode
     {
         enum CartType
         {
+            GENERIC,
             CMC_42,
-            CMC_50,
-            SBP
+            CMC_50
         }
 
         static readonly byte[] NEO_GEO_HEADER = { 0x45, 0x4E, 0x2D, 0x4F, 0x45, 0x47 };
@@ -26,7 +26,7 @@ namespace NeoDecode
 
             Console.WriteLine("Found: " + name);
 
-            if (new[] { 251, 253, 256, 257, 265, 266, 268, 269, 270, 271, 272, 999 }.Contains(cartNum))
+            if (new[] { 242, 251, 253, 256, 257, 265, 266, 268, 269, 270, 271, 272, 999 }.Contains(cartNum))
             {
                 Console.Write("Decoding PROM");
 
@@ -55,6 +55,9 @@ namespace NeoDecode
                     int smaOffset = 0;
                     switch (cartNum)
                     {
+                        case 242: // kof98
+                            prom = ProtCMC.KOF98Decrypt(prom);
+                            break;
                         case 251: // kof99
                             ProtCMC.P1Decrypt(prom, new byte[] { 13, 7, 3, 0, 9, 4, 5, 6, 1, 12, 8, 14, 10, 11, 2, 15 });
                             break;
@@ -376,6 +379,7 @@ namespace NeoDecode
                 switch (cartNum)
                 {
                     case 70: ParseCart(dir, cartNum, CartType.CMC_42, 0xbd, "zupapa"); break;
+                    case 242: ParseCart(dir, cartNum, CartType.GENERIC, 0x00, "kof98"); break;
                     case 251: ParseCart(dir, cartNum, CartType.CMC_42, 0x00, "kof99"); break;
                     case 252: ParseCart(dir, cartNum, CartType.CMC_42, 0x07, "ganryu"); break;
                     case 253: ParseCart(dir, cartNum, CartType.CMC_42, 0x06, "garou"); break;
@@ -398,7 +402,7 @@ namespace NeoDecode
                     case 270: ParseCart(dir, cartNum, CartType.CMC_50, 0x0f, "samsho5"); break;
                     case 271: ParseCart(dir, cartNum, CartType.CMC_50, 0x9d, "kof2003"); break;
                     case 272: ParseCart(dir, cartNum, CartType.CMC_50, 0x0d, "samsh5sp"); break;
-                    case 999: ParseCart(dir, cartNum, CartType.SBP, 0x00, "sbp"); break;
+                    case 999: ParseCart(dir, cartNum, CartType.GENERIC, 0x00, "sbp"); break;
                 }
             }
             catch (Exception)
@@ -467,7 +471,7 @@ namespace NeoDecode
                     ScanCart(dir);
                 }
             }
-            catch (Exception)
+            catch (Exception e)
             {
 #if DEBUG
                 Console.WriteLine("Error scanning " + dir + ": " + e.ToString());
