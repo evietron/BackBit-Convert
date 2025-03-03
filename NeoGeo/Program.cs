@@ -52,40 +52,62 @@ namespace NeoDecode
                 }
                 else
                 {
-                    int smaOffset = 0;
                     switch (cartNum)
                     {
                         case 242: // kof98
                             prom = ProtCMC.KOF98Decrypt(prom);
                             break;
                         case 251: // kof99
-                            ProtCMC.P1Decrypt(prom, new byte[] { 13, 7, 3, 0, 9, 4, 5, 6, 1, 12, 8, 14, 10, 11, 2, 15 });
+                            ProtCMC.P1Decrypt(prom,
+                                new byte[] { 13, 7, 3, 0, 9, 4, 5, 6, 1, 12, 8, 14, 10, 11, 2, 15 },
+                                0x600000,
+                                new byte[] { 18, 11, 6, 14, 17, 16, 5, 8, 10, 12, 0, 4, 3, 2, 7, 9, 15, 13, 1 },
+                                new byte[] { 6, 2, 4, 9, 8, 3, 1, 7, 0, 5 });
                             break;
                         case 253: // garou
                             if (prom[0] == 0xf5)
                             {
                                 Console.Write(" (Alternate)");
-                                ProtCMC.P1Decrypt(prom, new byte[] { 14, 5, 1, 11, 7, 4, 10, 15, 3, 12, 8, 13, 0, 2, 9, 6 });
-                                smaOffset = 0x300000; // need an empty spot
+                                ProtCMC.P1Decrypt(prom,
+                                    new byte[] { 14, 5, 1, 11, 7, 4, 10, 15, 3, 12, 8, 13, 0, 2, 9, 6 },
+                                    0x6f8000,
+                                    new byte[] { 18, 5, 16, 11, 2, 6, 7, 17, 3, 12, 8, 14, 4, 0, 9, 1, 10, 15, 13 },
+                                    new byte[] { 12, 8, 1, 7, 11, 3, 13, 10, 6, 9, 5, 4, 0, 2 });
                             }
                             else
                             {
-                                ProtCMC.P1Decrypt(prom, new byte[] { 13, 12, 14, 10, 8, 2, 3, 1, 5, 9, 11, 4, 15, 0, 6, 7 });
+                                ProtCMC.P1Decrypt(prom, 
+                                    new byte[] { 13, 12, 14, 10, 8, 2, 3, 1, 5, 9, 11, 4, 15, 0, 6, 7 },
+                                    0x610000,
+                                    new byte[] { 18, 4, 5, 16, 14, 7, 9, 6, 13, 17, 15, 3, 1, 2, 12, 11, 8, 10, 0 },
+                                    new byte[] { 9, 4, 8, 3, 13, 6, 2, 7, 0, 12, 1, 11, 10, 5 });
                             }
                             break;
                         case 256: // mslug3
                             if (prom[2] == 0xfb)
                             {
                                 Console.Write(" (Alternate)");
-                                ProtCMC.P1Decrypt(prom, new byte[] { 2, 11, 12, 14, 9, 3, 1, 4, 13, 7, 6, 8, 10, 15, 0, 5 }); // A
+                                ProtCMC.P1Decrypt(prom, 
+                                    new byte[] { 2, 11, 12, 14, 9, 3, 1, 4, 13, 7, 6, 8, 10, 15, 0, 5 },
+                                    0x4d0000,
+                                    new byte[] { 18, 1, 16, 14, 7, 17, 5, 8, 4, 15, 6, 3, 2, 0, 13, 10, 12, 9, 11 },
+                                    new byte[] { 12, 0, 11, 3, 4, 13, 6, 8, 14, 7, 5, 2, 10, 9, 1 }); // A
                             }
                             else
                             {
-                                ProtCMC.P1Decrypt(prom, new byte[] { 4, 11, 14, 3, 1, 13, 0, 7, 2, 8, 12, 15, 10, 9, 5, 6 });
+                                ProtCMC.P1Decrypt(prom, 
+                                    new byte[] { 4, 11, 14, 3, 1, 13, 0, 7, 2, 8, 12, 15, 10, 9, 5, 6 },
+                                    0x4d0000,
+                                    new byte[] { 18, 15, 2, 1, 13, 3, 0, 9, 6, 16, 4, 11, 5, 7, 12, 17, 14, 10, 8 },
+                                    new byte[] { 2, 11, 0, 14, 6, 4, 13, 8, 9, 3, 10, 7, 5, 12, 1 });
                             }
                             break;
                         case 257: // kof2000
-                            ProtCMC.P1Decrypt(prom, new byte[] { 12, 8, 11, 3, 15, 14, 7, 0, 10, 13, 6, 5, 9, 2, 1, 4 });
+                            ProtCMC.P1Decrypt(prom,
+                                new byte[] { 12, 8, 11, 3, 15, 14, 7, 0, 10, 13, 6, 5, 9, 2, 1, 4 },
+                                0x63a000,
+                                new byte[] { 18, 8, 4, 15, 13, 3, 14, 16, 2, 6, 17, 7, 12, 10, 0, 5, 11, 1, 9 },
+                                new byte[] { 4, 1, 3, 8, 6, 2, 7, 0, 9, 5 });
                             break;
                         case 265: // kof2002
                         case 266: // matrim
@@ -124,7 +146,11 @@ namespace NeoDecode
                         string smaName = FindCartSuffix(dir, "sma");
                         FileInfo fS = new FileInfo(smaName);
                         byte[] sma = new BinaryReader(fS.OpenRead()).ReadBytes((int)fS.Length);
-                        Buffer.BlockCopy(sma, 0, prom, prom.Length - smaOffset - sma.Length, sma.Length);
+                        Buffer.BlockCopy(sma, 0, prom, prom.Length - sma.Length, sma.Length);
+                        byte[] moveAround = new byte[0x800000];
+                        Buffer.BlockCopy(prom, 0, moveAround, 0, 0x800000);
+                        Buffer.BlockCopy(moveAround, 0x700000, prom, 0, 0x100000);
+                        Buffer.BlockCopy(moveAround, 0, prom, 0x100000, 0x700000);
                     }
 
                     Console.WriteLine("...");
@@ -471,14 +497,17 @@ namespace NeoDecode
                     ScanCart(dir);
                 }
             }
+#if DEBUG
             catch (Exception e)
             {
-#if DEBUG
                 Console.WriteLine("Error scanning " + dir + ": " + e.ToString());
-#else
-                Console.WriteLine("Error scanning " + dir);
-#endif
             }
+#else
+            catch (Exception)
+            {
+                Console.WriteLine("Error scanning " + dir);
+            }
+#endif
         }
 
         static void Main(string[] args)
