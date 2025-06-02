@@ -470,13 +470,13 @@ namespace NeoDecode
                 if (cartIDLo == 0xdc && cartIDHi == 0xfe)
                 {
                     cartID = (int)CartID.SBP; // super bubble pop
-                    File.Copy(FindCartSuffix(dir, "01b"), dir + Path.DirectorySeparatorChar + "sbp.m1");
-                    File.Copy(FindCartSuffix(dir, "02a"), dir + Path.DirectorySeparatorChar + "sbp.p1");
-                    File.Copy(FindCartSuffix(dir, "02b"), dir + Path.DirectorySeparatorChar + "sbp.s1");
-                    File.Copy(FindCartSuffix(dir, "03b"), dir + Path.DirectorySeparatorChar + "sbp.c1");
-                    File.Copy(FindCartSuffix(dir, "04b"), dir + Path.DirectorySeparatorChar + "sbp.c2");
-                    File.Copy(FindCartSuffix(dir, "12a"), dir + Path.DirectorySeparatorChar + "sbp.v1");
-                    File.Copy(FindCartSuffix(dir, "13a"), dir + Path.DirectorySeparatorChar + "sbp.v2");
+                    File.Copy(FindCartSuffix(dir, "01b"), dir + Path.DirectorySeparatorChar + "sbp.m1", true);
+                    File.Copy(FindCartSuffix(dir, "02a"), dir + Path.DirectorySeparatorChar + "sbp.p1", true);
+                    File.Copy(FindCartSuffix(dir, "02b"), dir + Path.DirectorySeparatorChar + "sbp.s1", true);
+                    File.Copy(FindCartSuffix(dir, "03b"), dir + Path.DirectorySeparatorChar + "sbp.c1", true);
+                    File.Copy(FindCartSuffix(dir, "04b"), dir + Path.DirectorySeparatorChar + "sbp.c2", true);
+                    File.Copy(FindCartSuffix(dir, "12a"), dir + Path.DirectorySeparatorChar + "sbp.v1", true);
+                    File.Copy(FindCartSuffix(dir, "13a"), dir + Path.DirectorySeparatorChar + "sbp.v2", true);
                 }
                 else if (cartIDLo == 0x34 && cartIDHi == 0x12)
                 {
