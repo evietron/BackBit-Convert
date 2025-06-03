@@ -315,7 +315,7 @@ namespace NeoDecode
                 (int)CartID.SVC, 
                 (int)CartID.SAMSHO5, 
                 (int)CartID.KOF2003, 
-                (int)CartID.SAMSH5SP }.Contains(cartID))
+                (int)CartID.SAMSH5SP}.Contains(cartID))
             {
                 Console.WriteLine("Decoding VROM...");
                 byte[] vrom = new byte[0];
@@ -380,6 +380,16 @@ namespace NeoDecode
                         break;
                     case (int)CartID.SAMSH5SP:
                         ProtPCM2.Decrypt(vrom, 6);
+                        if (vrom[0x06bc0] == 0xab &&
+                            vrom[0x0ed41] == 0x08 &&
+                            vrom[0x16bc0] == 0x6e &&
+                            vrom[0x1ed41] == 0xda)
+                        {
+                            vrom[0x06bc0] = 0x08;
+                            vrom[0x0ed41] = 0x89;
+                            vrom[0x16bc0] = 0x82;
+                            vrom[0x1ed41] = 0x8f;
+                        }
                         break;
                 }
 
