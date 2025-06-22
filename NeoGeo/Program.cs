@@ -1,12 +1,17 @@
 ﻿
 using System;
 using System.Linq;
+using System.Text.Unicode;
 using System.Xml.Linq;
 
 namespace NeoDecode
 {
     internal class Program
     {
+        const int MAJOR_VERSION = 0;
+        const int MINOR_VERSION = 9;
+        const int MICRO_VERSION = 3;
+
         enum CartType
         {
             GENERIC,
@@ -47,6 +52,7 @@ namespace NeoDecode
         }
 
         static readonly byte[] NEO_GEO_HEADER = { 0x45, 0x4E, 0x2D, 0x4F, 0x45, 0x47 };
+        static readonly byte[] NEO_SD_HEADER = { 0x4E, 0x45, 0x4F, 0x01 };
 
         public static void P1Swap(byte[] rom, byte[] chunks)
         {
@@ -222,9 +228,7 @@ namespace NeoDecode
 
                     Console.WriteLine("...");
 
-                    FileStream fPROM = File.Create(dir + Path.DirectorySeparatorChar + cartFilePrefix + ".pd");
-                    fPROM.Write(prom);
-                    fPROM.Close();
+                    File.Create(dir + Path.DirectorySeparatorChar + cartFilePrefix + ".pd").Write(prom);
                 }
             }
 
@@ -270,12 +274,8 @@ namespace NeoDecode
                     croml[i * 2 + 1] = cromc[i * 4 + 2];
                     cromh[i * 2 + 1] = cromc[i * 4 + 3];
                 }
-                FileStream fCROML = File.Create(dir + Path.DirectorySeparatorChar + cartFilePrefix + ".cl");
-                fCROML.Write(croml);
-                fCROML.Close();
-                FileStream fCROMH = File.Create(dir + Path.DirectorySeparatorChar + cartFilePrefix + ".ch");
-                fCROMH.Write(cromh);
-                fCROMH.Close();
+                File.Create(dir + Path.DirectorySeparatorChar + cartFilePrefix + ".cl").Write(croml);
+                File.Create(dir + Path.DirectorySeparatorChar + cartFilePrefix + ".ch").Write(cromh);
 
                 bool isBankedSFix = new[] {
                     (int)CartID.GAROU, 
@@ -288,9 +288,7 @@ namespace NeoDecode
                 byte[] srom = new byte[(isBankedSFix ? 512 : 128) * 1024];
                 Console.WriteLine("Decoding SFIX...");
                 ProtCMC.SFixDecrypt(cromc, srom);
-                FileStream fSROM = File.Create(dir + Path.DirectorySeparatorChar + cartFilePrefix + ".sd");
-                fSROM.Write(srom);
-                fSROM.Close();
+                File.Create(dir + Path.DirectorySeparatorChar + cartFilePrefix + ".sd").Write(srom);
             }
 
             if (cartType == CartType.CMC_50)
@@ -300,9 +298,7 @@ namespace NeoDecode
                 FileInfo f = new FileInfo(mName);
                 byte[] mrom = new BinaryReader(f.OpenRead()).ReadBytes((int)f.Length);
                 ProtCMC.M1Decrypt(mrom);
-                FileStream fMROM = File.Create(dir + Path.DirectorySeparatorChar + cartFilePrefix + ".md");
-                fMROM.Write(mrom);
-                fMROM.Close();
+                File.Create(dir + Path.DirectorySeparatorChar + cartFilePrefix + ".md").Write(mrom);
             }
 
             if (new[] { 
@@ -402,15 +398,10 @@ namespace NeoDecode
                     vromb = new byte[vrom.Length - 0x800000];
                     Buffer.BlockCopy(vrom, 0x800000, vromb, 0, vromb.Length);
                 }
-                FileStream fVROM = File.Create(dir + Path.DirectorySeparatorChar + cartFilePrefix + ".va");
-                fVROM.Write(vroma);
-                fVROM.Close();
-
+                File.Create(dir + Path.DirectorySeparatorChar + cartFilePrefix + ".va").Write(vroma);
                 if (vromb.Length > 0)
                 {
-                    fVROM = File.Create(dir + Path.DirectorySeparatorChar + cartFilePrefix + ".vb");
-                    fVROM.Write(vromb);
-                    fVROM.Close();
+                    File.Create(dir + Path.DirectorySeparatorChar + cartFilePrefix + ".vb").Write(vromb);
                 }
             }
         }
@@ -549,18 +540,15 @@ namespace NeoDecode
                         byte[] crom = new BinaryReader(f.OpenRead()).ReadBytes((int)f.Length);
                         byte[] croml = new byte[crom.Length / 2];
                         byte[] cromh = new byte[crom.Length / 2];
-                        for (int i = 0; i < crom.Length / 4; i++) {
+                        for (int i = 0; i < crom.Length / 4; i++)
+                        {
                             croml[i * 2 + 0] = crom[i * 4 + 0];
                             croml[i * 2 + 1] = crom[i * 4 + 1];
                             cromh[i * 2 + 0] = crom[i * 4 + 2];
                             cromh[i * 2 + 1] = crom[i * 4 + 3];
                         }
-                        FileStream fCROML = File.Create(dir + Path.DirectorySeparatorChar + "crom.c1");
-                        fCROML.Write(croml);
-                        fCROML.Close();
-                        FileStream fCROMH = File.Create(dir + Path.DirectorySeparatorChar + "crom.c2");
-                        fCROMH.Write(cromh);
-                        fCROMH.Close();
+                        File.Create(dir + Path.DirectorySeparatorChar + "crom.c1").Write(croml);
+                        File.Create(dir + Path.DirectorySeparatorChar + "crom.c2").Write(cromh);
                         break;
                     case "m1rom":
                         File.Move(s, s + ".m1");
@@ -575,6 +563,65 @@ namespace NeoDecode
                         File.Move(s, s + ".v1");
                         break;
                 }
+            }
+        }
+
+        static UInt32 BytesToUInt32(byte[] b, int offset)
+        {
+            UInt32 result = b[offset + 3];
+            result <<= 8;
+            result |= b[offset + 2];
+            result <<= 8;
+            result |= b[offset + 1];
+            result <<= 8;
+            result |= b[offset];
+            return result;
+        }
+
+        static void ParseNeoSD(string name)
+        {
+            FileInfo f = new FileInfo(name);
+            BinaryReader br = new BinaryReader(f.OpenRead());
+            byte[] header = br.ReadBytes(4096);
+            if (header.Take(4).SequenceEqual(NEO_SD_HEADER))
+            {
+                string prefix = name.Substring(0, name.Length - 4);
+                int plen =  (int)BytesToUInt32(header, 4);
+                int slen =  (int)BytesToUInt32(header, 8);
+                int mlen =  (int)BytesToUInt32(header, 12);
+                int v1len = (int)BytesToUInt32(header, 16);
+                int v2len = (int)BytesToUInt32(header, 20);
+                int clen =  (int)BytesToUInt32(header, 24);
+                string title = "";
+                for (int i = 44; i < 76; i++)
+                {
+                    if (header[i] == 0)
+                    {
+                        break;
+                    }
+                    title += (char)header[i];
+                }
+                if (title.Length == 0)
+                {
+                    title = prefix;
+                }
+                Console.WriteLine("Found NEO SD (" + title + ")");
+                DirectoryInfo di = Directory.CreateDirectory(title);
+                File.Create(di.FullName + Path.DirectorySeparatorChar + prefix + ".pd").Write(br.ReadBytes(plen));
+                File.Create(di.FullName + Path.DirectorySeparatorChar + prefix + ".sd").Write(br.ReadBytes(slen));
+                File.Create(di.FullName + Path.DirectorySeparatorChar + prefix + ".md").Write(br.ReadBytes(mlen));
+                File.Create(di.FullName + Path.DirectorySeparatorChar + prefix + ".va").Write(br.ReadBytes(v1len));
+                if (v2len > 0) File.Create(di.FullName + Path.DirectorySeparatorChar + prefix + ".vb").Write(br.ReadBytes(v2len));
+                byte[] crom = br.ReadBytes(clen);
+                byte[] croml = new byte[crom.Length / 2];
+                byte[] cromh = new byte[crom.Length / 2];
+                for (int i = 0; i < crom.Length / 2; i++)
+                {
+                    croml[i] = crom[i * 2 + 0];
+                    cromh[i] = crom[i * 2 + 1];
+                }
+                File.Create(di.FullName + Path.DirectorySeparatorChar + prefix + ".cl").Write(croml);
+                File.Create(di.FullName + Path.DirectorySeparatorChar + prefix + ".ch").Write(cromh);
             }
         }
 
@@ -594,6 +641,17 @@ namespace NeoDecode
                 else if (FindCartSuffix(dir, "p1").Length > 0 || FindCartSuffix(dir, "u13").Length > 0)
                 {
                     ScanCart(dir);
+                }
+                else
+                {
+                    // Didn't find individual game files; any all-in-one files?
+                    foreach (string s in Directory.GetFiles(dir))
+                    {
+                        if (s.ToUpper().EndsWith(".NEO"))
+                        {
+                            ParseNeoSD(s);
+                        }
+                    }
                 }
             }
 #if DEBUG
@@ -617,6 +675,8 @@ namespace NeoDecode
             }
             else 
             {
+                Console.WriteLine("BackBit Neo Decode v" + MAJOR_VERSION + "." + MINOR_VERSION + "." + MICRO_VERSION);
+                Console.WriteLine();
                 Console.WriteLine("Usage: neodecode <pathname>");
                 Console.WriteLine("This program will scan the specified path and decode all found Neo Geo games");
                 Console.WriteLine("so they can be played on a BackBit Neo Geo Platinum cartridge.");
