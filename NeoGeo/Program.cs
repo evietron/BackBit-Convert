@@ -8,7 +8,7 @@ namespace NeoDecode
 {
     internal class Program
     {
-        const string VERSION = "0.9.3a";
+        const string VERSION = "0.9.3b";
 
         enum CartType
         {
@@ -590,7 +590,7 @@ namespace NeoDecode
             byte[] header = br.ReadBytes(4096);
             if (header.Take(4).SequenceEqual(NEO_SD_HEADER))
             {
-                string prefix = name.Substring(0, name.Length - 4);
+                string prefix = f.Name.Substring(0, f.Name.Length - 4);
                 int plen =  (int)BytesToUInt32(header, 4);
                 int slen =  (int)BytesToUInt32(header, 8);
                 int mlen =  (int)BytesToUInt32(header, 12);
@@ -611,7 +611,7 @@ namespace NeoDecode
                     title = prefix;
                 }
                 Console.WriteLine("Unpacking NEO SD (" + title + ")");
-                DirectoryInfo di = Directory.CreateDirectory(title);
+                DirectoryInfo di = Directory.CreateDirectory(f.DirectoryName + Path.DirectorySeparatorChar + title);
                 CreateBinary(di.FullName + Path.DirectorySeparatorChar + prefix + ".pd", br.ReadBytes(plen));
                 CreateBinary(di.FullName + Path.DirectorySeparatorChar + prefix + ".sd", br.ReadBytes(slen));
                 CreateBinary(di.FullName + Path.DirectorySeparatorChar + prefix + ".md", br.ReadBytes(mlen));
