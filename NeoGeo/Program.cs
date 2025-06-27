@@ -8,7 +8,7 @@ namespace NeoDecode
 {
     internal class Program
     {
-        const string VERSION = "0.9.3b";
+        const string VERSION = "0.9.3c";
 
         enum CartType
         {
@@ -604,7 +604,10 @@ namespace NeoDecode
                     {
                         break;
                     }
-                    title += (char)header[i];
+                    if (("" + (char)header[i]).IndexOfAny(Path.GetInvalidFileNameChars()) == -1)
+                    {
+                        title += (char)header[i];
+                    }
                 }
                 if (title.Length == 0)
                 {
