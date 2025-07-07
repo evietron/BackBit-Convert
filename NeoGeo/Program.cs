@@ -1,6 +1,7 @@
 ﻿
 using System;
 using System.Linq;
+using System.Numerics;
 using System.Text.Unicode;
 using System.Xml.Linq;
 
@@ -8,7 +9,7 @@ namespace NeoDecode
 {
     internal class Program
     {
-        const string VERSION = "0.9.3c";
+        const string VERSION = "0.9.6";
 
         enum CartType
         {
@@ -50,6 +51,8 @@ namespace NeoDecode
         }
 
         static readonly byte[] NEO_GEO_HEADER = { 0x45, 0x4E, 0x2D, 0x4F, 0x45, 0x47 };
+        static readonly byte[] NEO_GEO_HEADER_ODD = { 0x45, 0x2D, 0x45 };
+        static readonly byte[] NEO_GEO_HEADER_EVEN = { 0x4E, 0x4F, 0x47 };
         static readonly byte[] NEO_SD_HEADER = { 0x4E, 0x45, 0x4F, 0x01 };
 
         public static void CreateBinary(string name, byte[] data)
@@ -430,7 +433,10 @@ namespace NeoDecode
             {
                 string s2 = s.Substring(s.LastIndexOf(Path.DirectorySeparatorChar) + 1);
                 if (s2.ToUpper().IndexOf("-" + romName.ToUpper()) != -1 ||
-                    s2.ToUpper().IndexOf("." + romName.ToUpper()) != -1)
+                    s2.ToUpper().IndexOf("." + romName.ToUpper()) != -1 ||
+                    s2.ToUpper() == romName.ToUpper() ||
+                    s2.ToUpper() == romName.ToUpper() + ".BIN" ||
+                    s2.ToUpper() == romName.ToUpper() + ".ROM")
                 {
                     return s;
                 }
@@ -438,14 +444,55 @@ namespace NeoDecode
             return "";
         }
 
+        static void ParseCROMBytes(string dir, int first, int pieces)
+        {
+            int len = (int)(new FileInfo(FindCartSuffix(dir, "c" + first)).Length);
+            byte[] croml = new byte[len * pieces / 2];
+            byte[] cromh = new byte[len * pieces / 2];
+            for (int i = 0; i < pieces; i++)
+            {
+                byte[] data = new BinaryReader(new FileInfo(FindCartSuffix(dir, "c" + (first + i).ToString())).OpenRead()).ReadBytes(len);
+                for (int x = 0; x < len; x++)
+                {
+                    if ((i & 2) == 0)
+                    {
+                        croml[((i & 4) * len / 2) + x * 2 + (i & 1)] = data[x];
+                    }
+                    else
+                    {
+                        cromh[((i & 4) * len / 2) + x * 2 + (i & 1)] = data[x];
+                    }
+                }
+            }
+            CreateBinary(dir + Path.DirectorySeparatorChar + "cl", croml);
+            CreateBinary(dir + Path.DirectorySeparatorChar + "ch", cromh);
+        }
+
         static void ScanCart(string dir)
         {
-            string p1Name = FindCartSuffix(dir, "p1");
+            string p1Name = FindCartSuffix(dir, "p1");        
             string p2Name = FindCartSuffix(dir, "p2");
             string sbpName = FindCartSuffix(dir, "u13");
 
+            if (p1Name.Length == 0 && p2Name.Length == 0)
+            {
+                p1Name = FindCartSuffix(dir, "podd");
+                p2Name = FindCartSuffix(dir, "peven");
+            }
+            if (p1Name.Length == 0 && p2Name.Length == 0)
+            {
+                p1Name = FindCartSuffix(dir, "ep1");
+                p2Name = FindCartSuffix(dir, "ep2");
+            }
+            if (p1Name.Length == 0 && p2Name.Length == 0)
+            {
+                p1Name = FindCartSuffix(dir, "sp1");
+                p2Name = FindCartSuffix(dir, "sp2");
+            }
+
             int cartID = 0;
             string cartIDStr = p1Name.Substring(p1Name.LastIndexOf(Path.DirectorySeparatorChar) + 1);
+            bool programIsBytes = false;
             for (int i = 0; i < cartIDStr.Length; i++)
             {
                 if (!char.IsDigit(cartIDStr[i]))
@@ -466,31 +513,80 @@ namespace NeoDecode
                 // could not determine cart num from filename, so look inside
                 FileInfo p1 = new FileInfo(p1Name);
                 FileStream p1fs = p1.OpenRead();
+                byte[] data = new byte[8];
+                int headerOffset = 0;
+
+                // first, find NEO GEO ID
                 if (p2Name.Length == 0 && p1.Length > 0x100000)
                 {
-                    p1fs.Seek(0x100000, SeekOrigin.Begin);
+                    headerOffset = 0x100000;
                 }
-                p1fs.Seek(0x108, SeekOrigin.Current);
-                int cartIDLo = p1fs.ReadByte();
-                int cartIDHi = p1fs.ReadByte();
-                if (cartIDLo == 0xdc && cartIDHi == 0xfe)
+                p1fs.Seek(headerOffset + 0x100, SeekOrigin.Begin);
+                p1fs.Read(data);
+                if (data.Take(6).SequenceEqual(NEO_GEO_HEADER))
                 {
-                    cartID = (int)CartID.SBP; // super bubble pop
-                    File.Copy(FindCartSuffix(dir, "01b"), dir + Path.DirectorySeparatorChar + "sbp.m1", true);
-                    File.Copy(FindCartSuffix(dir, "02a"), dir + Path.DirectorySeparatorChar + "sbp.p1", true);
-                    File.Copy(FindCartSuffix(dir, "02b"), dir + Path.DirectorySeparatorChar + "sbp.s1", true);
-                    File.Copy(FindCartSuffix(dir, "03b"), dir + Path.DirectorySeparatorChar + "sbp.c1", true);
-                    File.Copy(FindCartSuffix(dir, "04b"), dir + Path.DirectorySeparatorChar + "sbp.c2", true);
-                    File.Copy(FindCartSuffix(dir, "12a"), dir + Path.DirectorySeparatorChar + "sbp.v1", true);
-                    File.Copy(FindCartSuffix(dir, "13a"), dir + Path.DirectorySeparatorChar + "sbp.v2", true);
+                    // found a valid header, now identify some games
+                    p1fs.Seek(0x108, SeekOrigin.Current);
+                    int cartIDLo = p1fs.ReadByte();
+                    int cartIDHi = p1fs.ReadByte();
+                    if (cartIDLo == 0xdc && cartIDHi == 0xfe)
+                    {
+                        cartID = (int)CartID.SBP; // super bubble pop
+                        File.Copy(FindCartSuffix(dir, "01b"), dir + Path.DirectorySeparatorChar + "sbp.m1", true);
+                        File.Copy(FindCartSuffix(dir, "02a"), dir + Path.DirectorySeparatorChar + "sbp.p1", true);
+                        File.Copy(FindCartSuffix(dir, "02b"), dir + Path.DirectorySeparatorChar + "sbp.s1", true);
+                        File.Copy(FindCartSuffix(dir, "03b"), dir + Path.DirectorySeparatorChar + "sbp.c1", true);
+                        File.Copy(FindCartSuffix(dir, "04b"), dir + Path.DirectorySeparatorChar + "sbp.c2", true);
+                        File.Copy(FindCartSuffix(dir, "12a"), dir + Path.DirectorySeparatorChar + "sbp.v1", true);
+                        File.Copy(FindCartSuffix(dir, "13a"), dir + Path.DirectorySeparatorChar + "sbp.v2", true);
+                    }
+                    else if (cartIDLo == 0x34 && cartIDHi == 0x12)
+                    {
+                        cartID = (int)CartID.TEOT;
+                    }
+                    else
+                    {
+                        cartID = cartIDHi * 100 + (cartIDLo >> 4) * 10 + (cartIDLo & 15);
+                    }
+                } else
+                {
+                    // didn't find a header .. is the program arranged in bytes?
+                    p1fs.Seek(headerOffset + 0x80, SeekOrigin.Begin);
+                    p1fs.Read(data);
+                    if (data.Take(3).SequenceEqual(NEO_GEO_HEADER_ODD) && 
+                        new FileInfo(p1Name).Length == new FileInfo(p2Name).Length)
+                    {
+                        programIsBytes = true;
+                    }
                 }
-                else if (cartIDLo == 0x34 && cartIDHi == 0x12)
+            }
+
+            if (programIsBytes)
+            {
+                Console.WriteLine("Combined bytes...");
+                int len = (int)(new FileInfo(p1Name).Length);
+                byte[] prom1 = new BinaryReader(new FileInfo(p1Name).OpenRead()).ReadBytes(len);
+                byte[] prom2 = new BinaryReader(new FileInfo(p2Name).OpenRead()).ReadBytes(len);
+                byte[] prom = new byte[prom1.Length * 2];
+                for (int i = 0; i < prom1.Length; i++)
                 {
-                    cartID = (int)CartID.TEOT;
+                    prom[i * 2 + 0] = prom1[i];
+                    prom[i * 2 + 1] = prom2[i];
                 }
-                else
+                CreateBinary(dir + Path.DirectorySeparatorChar + "pd", prom);
+
+                if (FindCartSuffix(dir, "c1").Length > 0)
                 {
-                    cartID = cartIDHi * 100 + (cartIDLo >> 4) * 10 + (cartIDLo & 15);
+                    int pieces = 4;
+                    if (FindCartSuffix(dir, "c5").Length > 0) { pieces = 8; }
+                    if (FindCartSuffix(dir, "c9").Length > 0) { pieces = 12; }
+                    ParseCROMBytes(dir, 1, pieces);
+                }
+                else if (FindCartSuffix(dir, "c11").Length > 0)
+                {
+                    int pieces = 4;
+                    if (FindCartSuffix(dir, "c15").Length > 0) { pieces = 8; }
+                    ParseCROMBytes(dir, 11, pieces);
                 }
             }
 
