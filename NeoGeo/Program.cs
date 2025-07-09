@@ -9,7 +9,7 @@ namespace NeoDecode
 {
     internal class Program
     {
-        const string VERSION = "0.9.6";
+        const string VERSION = "0.9.6a";
 
         enum CartType
         {
@@ -526,7 +526,7 @@ namespace NeoDecode
                 if (data.Take(6).SequenceEqual(NEO_GEO_HEADER))
                 {
                     // found a valid header, now identify some games
-                    p1fs.Seek(0x108, SeekOrigin.Current);
+                    p1fs.Seek(headerOffset + 0x108, SeekOrigin.Begin);
                     int cartIDLo = p1fs.ReadByte();
                     int cartIDHi = p1fs.ReadByte();
                     if (cartIDLo == 0xdc && cartIDHi == 0xfe)
