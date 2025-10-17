@@ -9,7 +9,7 @@ namespace NeoDecode
 {
     internal class Program
     {
-        const string VERSION = "0.9.6a";
+        const string VERSION = "1.0.7";
 
         enum CartType
         {
@@ -398,19 +398,20 @@ namespace NeoDecode
                 }
 
                 byte[] vroma = vrom;
-                byte[] vromb = new byte[0];
-                if (vrom.Length > 0x800000)
+                //byte[] vromb = new byte[0];
+                /*if (vrom.Length > 0x800000)
                 {
                     vroma = new byte[0x800000];
                     Buffer.BlockCopy(vrom, 0, vroma, 0, vroma.Length);
                     vromb = new byte[vrom.Length - 0x800000];
                     Buffer.BlockCopy(vrom, 0x800000, vromb, 0, vromb.Length);
-                }
+                }*/
                 CreateBinary(dir + Path.DirectorySeparatorChar + cartFilePrefix + ".va", vroma);
-                if (vromb.Length > 0)
+                File.Delete(dir + Path.DirectorySeparatorChar + cartFilePrefix + ".vb"); // remove unused
+                /*if (vromb.Length > 0)
                 {
                     CreateBinary(dir + Path.DirectorySeparatorChar + cartFilePrefix + ".vb", vromb);
-                }
+                }*/
             }
         }
 
