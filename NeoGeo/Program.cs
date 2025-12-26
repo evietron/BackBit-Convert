@@ -2,6 +2,7 @@
 using System;
 using System.Linq;
 using System.Numerics;
+using System.Runtime.ExceptionServices;
 using System.Text.Unicode;
 using System.Xml.Linq;
 
@@ -9,7 +10,7 @@ namespace NeoDecode
 {
     internal class Program
     {
-        const string VERSION = "1.0.7";
+        const string VERSION = "1.0.9";
 
         enum CartType
         {
@@ -46,8 +47,8 @@ namespace NeoDecode
             SAMSH5SP = 272,
 
             BiggerThanAnyNormalID = 10000, // so it won't conflict, these are temporary
-            SBP, // Super Bubble Pop
-            TEOT // The Eye of Typhoon
+            SBP,  // Super Bubble Pop
+            BANKS9 // The Eye of Typhoon, Violent Vengeance, etc
         }
 
         static readonly byte[] NEO_GEO_HEADER = { 0x45, 0x4E, 0x2D, 0x4F, 0x45, 0x47 };
@@ -70,6 +71,18 @@ namespace NeoDecode
             {
                 Buffer.BlockCopy(buf, chunks[i] * 0x10000, rom, i * 0x80000, 0x80000);
             }
+        }
+
+        public static bool ROMIsBlank(byte[] rom, int start, int length)
+        {
+            for (int i = start + 1; i < start + length; i++)
+            {
+                if (rom[i] != rom[start])
+                {
+                    return false;
+                }
+            }
+            return true;
         }
 
         static void ParseCart(string dir, int cartID, CartType cartType, int extraXor, string name)
@@ -96,7 +109,7 @@ namespace NeoDecode
                 (int)CartID.KOF2003, 
                 (int)CartID.SAMSH5SP, 
                 (int)CartID.SBP, 
-                (int)CartID.TEOT }.Contains(cartID))
+                (int)CartID.BANKS9 }.Contains(cartID))
             {
                 Console.Write("Decoding PROM");
 
@@ -213,9 +226,6 @@ namespace NeoDecode
                         case (int)CartID.SBP:
                             prom = SBP.Decrypt(prom);
                             break;
-                        case (int)CartID.TEOT:
-                            prom = TEOT.Pack(prom);
-                            break;
                     }
 
                     if (new[] { 
@@ -236,7 +246,29 @@ namespace NeoDecode
 
                     Console.WriteLine("...");
 
-                    CreateBinary(dir + Path.DirectorySeparatorChar + cartFilePrefix + ".pd", prom);
+                    if (cartID == (int)CartID.BANKS9)
+                    {
+                        int promOffset = 0;
+                        int promLength = 0x100000;
+                        int totalSize = 0;
+                        for (int i = 1; i <= 9; i++)
+                        {
+                            byte[] subProm = new byte[promLength];
+                            Buffer.BlockCopy(prom, promOffset, subProm, 0, promLength);
+                            CreateBinary(dir + Path.DirectorySeparatorChar + cartFilePrefix + ".pd" + i, subProm);
+                            promOffset += 0x100000;
+                            totalSize += promLength;
+                            promLength = 0x100000;
+                            while (totalSize + promLength > i * 0x100000 && promLength > 0x20000 && ROMIsBlank(prom, promOffset + promLength - 0x20000, 0x20000))
+                            {
+                                promLength -= 0x20000;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        CreateBinary(dir + Path.DirectorySeparatorChar + cartFilePrefix + ".pd", prom);
+                    }
                 }
             }
 
@@ -474,6 +506,7 @@ namespace NeoDecode
             string p1Name = FindCartSuffix(dir, "p1");        
             string p2Name = FindCartSuffix(dir, "p2");
             string sbpName = FindCartSuffix(dir, "u13");
+            string title = "generic";
 
             if (p1Name.Length == 0 && p2Name.Length == 0)
             {
@@ -513,6 +546,7 @@ namespace NeoDecode
             {
                 // could not determine cart num from filename, so look inside
                 FileInfo p1 = new FileInfo(p1Name);
+                FileInfo p2 = new FileInfo(p2Name);
                 FileStream p1fs = p1.OpenRead();
                 byte[] data = new byte[8];
                 int headerOffset = 0;
@@ -524,7 +558,25 @@ namespace NeoDecode
                 }
                 p1fs.Seek(headerOffset + 0x100, SeekOrigin.Begin);
                 p1fs.Read(data);
-                if (data.Take(6).SequenceEqual(NEO_GEO_HEADER))
+                if (p1.Length + p2.Length == 0x900000)
+                {
+                    cartID = (int)CartID.BANKS9;
+                    title = p1Name.Substring(p1Name.LastIndexOf(Path.DirectorySeparatorChar) + 1);
+                    if (title.IndexOf('-') != -1)
+                    {
+                        title = title.Substring(0, title.IndexOf('-'));
+                    }
+                    if (title.IndexOf('.') != -1)
+                    {
+                        title = title.Substring(0, title.IndexOf('.'));
+                    }
+                    File.Delete(dir + Path.DirectorySeparatorChar + title + ".pd"); // remove unused
+                    for (int i = 1; i <= 9; i++)
+                    {
+                        File.Delete(dir + Path.DirectorySeparatorChar + title + ".pd" + i); // remove unused
+                    }
+                }
+                else if (data.Take(6).SequenceEqual(NEO_GEO_HEADER))
                 {
                     // found a valid header, now identify some games
                     p1fs.Seek(headerOffset + 0x108, SeekOrigin.Begin);
@@ -541,15 +593,12 @@ namespace NeoDecode
                         File.Copy(FindCartSuffix(dir, "12a"), dir + Path.DirectorySeparatorChar + "sbp.v1", true);
                         File.Copy(FindCartSuffix(dir, "13a"), dir + Path.DirectorySeparatorChar + "sbp.v2", true);
                     }
-                    else if (cartIDLo == 0x34 && cartIDHi == 0x12)
-                    {
-                        cartID = (int)CartID.TEOT;
-                    }
                     else
                     {
                         cartID = cartIDHi * 100 + (cartIDLo >> 4) * 10 + (cartIDLo & 15);
                     }
-                } else
+                } 
+                else
                 {
                     // didn't find a header .. is the program arranged in bytes?
                     p1fs.Seek(headerOffset + 0x80, SeekOrigin.Begin);
@@ -620,7 +669,7 @@ namespace NeoDecode
                     case (int)CartID.KOF2003:  ParseCart(dir, cartID, CartType.CMC_50,  0x9d, "kof2003"); break;
                     case (int)CartID.SAMSH5SP: ParseCart(dir, cartID, CartType.CMC_50,  0x0d, "samsh5sp"); break;
                     case (int)CartID.SBP:      ParseCart(dir, cartID, CartType.GENERIC, 0x00, "sbp"); break;
-                    case (int)CartID.TEOT:     ParseCart(dir, cartID, CartType.GENERIC, 0x00, "teot"); break;
+                    case (int)CartID.BANKS9:   ParseCart(dir, cartID, CartType.GENERIC, 0x00, title); break;
                 }
             }
             catch (Exception)
