@@ -10,7 +10,7 @@ namespace NeoDecode
 {
     internal class Program
     {
-        const string VERSION = "1.0.9";
+        const string VERSION = "1.0.9a";
 
         enum CartType
         {
@@ -546,7 +546,7 @@ namespace NeoDecode
             {
                 // could not determine cart num from filename, so look inside
                 FileInfo p1 = new FileInfo(p1Name);
-                FileInfo p2 = new FileInfo(p2Name);
+                long p2Length = (p2Name.Length > 0) ? new FileInfo(p2Name).Length : 0;
                 FileStream p1fs = p1.OpenRead();
                 byte[] data = new byte[8];
                 int headerOffset = 0;
@@ -558,7 +558,7 @@ namespace NeoDecode
                 }
                 p1fs.Seek(headerOffset + 0x100, SeekOrigin.Begin);
                 p1fs.Read(data);
-                if (p1.Length + p2.Length == 0x900000)
+                if (p1.Length + p2Length == 0x900000)
                 {
                     cartID = (int)CartID.BANKS9;
                     title = p1Name.Substring(p1Name.LastIndexOf(Path.DirectorySeparatorChar) + 1);
